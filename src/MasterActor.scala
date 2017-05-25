@@ -14,7 +14,7 @@ class MasterActor extends Actor with ActorLogging {
   val webServer = context.actorOf(WebServerActor.props("localhost", 9080),"WebServerActor")
   watched += webServer
 
-  val dataBase = context.actorOf(DatabaseActor.props())
+  val dataBase = context.actorOf(DatabaseActor.props(), "DatabaseActor")
   watched += dataBase
 
   // Watch all the child actors.
@@ -36,6 +36,9 @@ class MasterActor extends Actor with ActorLogging {
     case someMessage => log.warning(s"Got the following message for some reason: $someMessage")
   }
 
+  /**
+    * Terminate the actor safely if, no more actors to watch, or the webServer actor is stopped.
+    */
   def controlledTermination(): Unit = {
     // If webserver is not alive stop all the other actors and stop the application.
     if (!watched.contains(webServer)) watched.foreach(_ ! PoisonPill)
