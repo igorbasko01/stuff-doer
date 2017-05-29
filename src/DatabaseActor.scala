@@ -79,11 +79,12 @@ class DatabaseActor extends Actor with ActorLogging {
   override def receive: Receive = {
     case DatabaseActor.Shutdown => controlledTermination()
     case PoisonPill => controlledTermination()
-    case DatabaseActor.ReadyForWork => {
+    case DatabaseActor.ReadyForWork =>
       readyToAcceptWork = true
       log.info("I'm ready for work ! Bring it on !!")
-    }
-    case somemessage => if (readyToAcceptWork) log.error(s"Got some unknown message: $somemessage") else log.error("Still initializing ! Sorry...")
+    case somemessage =>
+      if (readyToAcceptWork) log.error(s"Got some unknown message: $somemessage")
+      else log.error("Still initializing ! Sorry...")
   }
 
   def controlledTermination(): Unit = {
@@ -91,8 +92,7 @@ class DatabaseActor extends Actor with ActorLogging {
   }
 
   /**
-    * This functions opens and loads the actions in the actions file.
-    * Only loads actions that are not finished.
+    * This function opens and loads the actions in the actions file.
     * @param fileName The name of the actions files to open.
     * @return A list of strings. Each string represents an action.
     */
@@ -110,6 +110,7 @@ class DatabaseActor extends Actor with ActorLogging {
       case Failure(excp) =>
         log.error(s"Error with reading actions file: $fileName")
         log.error(excp.getStackTrace.mkString("\n"))
+        log.error("Terminating the application....")
         context.system.terminate
     })(context.dispatcher)
 

@@ -1,10 +1,15 @@
-import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Terminated}
+import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props, Terminated}
 
 import scala.collection.mutable.ArrayBuffer
 
 /**
   * Created by igor on 10/05/17.
   */
+object MasterActor {
+
+  def props(): Props = Props(new MasterActor)
+}
+
 class MasterActor extends Actor with ActorLogging {
 
   //TODO: Create some sort of "Database" actor.
