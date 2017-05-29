@@ -1,16 +1,20 @@
 import akka.actor.{Actor, ActorLogging, PoisonPill, Props}
 import java.nio.file.{Files, Paths}
 
-import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
 
 /**
   * Created by igor on 25/05/17.
   */
+object ActionStatus extends Enumeration {
+  type Status = Value
+  val INITIAL, FINISHED = Value
+}
+
 object DatabaseActor {
   case object Shutdown
 
-  case class Action(date: String, time: String, action: String, params: ArrayBuffer[String], status: Int)
+  case class Action(date: String, time: String, action: String, params: Array[String], status: ActionStatus.Status)
 
   def props(): Props = Props(new DatabaseActor)
 }
@@ -60,5 +64,13 @@ class DatabaseActor extends Actor with ActorLogging {
     bufferedSource.close()
 
     actions
+  }
+
+  def loadUnFinishedActions(fileName: String) : List[DatabaseActor.Action] = {
+    loadActionsFile(fileName).map(line => {
+      val Array(date, time, action, params, status) = line.split(fieldsDelimiter)
+      val actionParams = params.split(paramsDelimiter)
+      DatabaseActor.Action(date,time,action,actionParams,status.asInstanceOf[ActionStatus.Status])
+    }).filter(action => !action.status.equals(ActionStatus.FINISHED))
   }
 }
