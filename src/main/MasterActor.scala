@@ -15,7 +15,7 @@ object MasterActor {
 class MasterActor(config: Configuration) extends Actor with ActorLogging {
   val watched = ArrayBuffer.empty[ActorRef]
 
-  val webServer = context.actorOf(WebServerActor.props("localhost", 9080),"main.WebServerActor")
+  val webServer = context.actorOf(WebServerActor.props(config.hostname, config.portNum),"main.WebServerActor")
   watched += webServer
 
   val dataBase = context.actorOf(DatabaseActor.props(config.actionsFile), "main.DatabaseActor")

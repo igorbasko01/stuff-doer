@@ -8,6 +8,8 @@ import com.typesafe.config.Config
 class Configuration extends Serializable {
 
   var actionsFile: String = _
+  var hostname: String = _
+  var portNum: Int = _
 
   /**
     * Loads the configuration into the Configuration object.
@@ -18,6 +20,8 @@ class Configuration extends Serializable {
   def loadConfig(config: Config): Boolean = {
     try {
       actionsFile = config.getString("database.actions.file")
+      hostname = config.getString("webserver.hostname")
+      portNum = config.getInt("webserver.port")
       true
     } catch {
       case e: RuntimeException => println(e.getMessage); false
