@@ -2,7 +2,7 @@ package main
 
 import java.nio.file.{Files, Paths}
 
-import akka.actor.{Actor, ActorLogging, PoisonPill, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props}
 import akka.stream._
 import akka.stream.scaladsl._
 import akka.util.ByteString
@@ -12,14 +12,13 @@ import scala.util.{Failure, Success, Try}
 /**
   * Created by igor on 25/05/17.
   */
-//object ActionStatus extends Enumeration {
-//  type Status = Value
-//  val INITIAL, FINISHED = Value
-//}
-
 object DatabaseActor {
+  val ACTION_STATUS_INITIAL = 0
+  val ACTION_STATUS_FINISHED = 99
+
   case object Shutdown
   case object ReadyForWork
+  case object QueryUnfinishedActions
 
   case class Action(date: String, time: String, action: String, params: List[String], status: Int)
   case class ActionKey(key: Int)
@@ -28,13 +27,10 @@ object DatabaseActor {
 }
 
 class DatabaseActor(actionsFilePath: String) extends Actor with ActorLogging {
-
-  //TODO: If there are un-finished actions in the actions map, send them to the appropriate actor
+  
   //TODO: Save actions to new actions file.
   //TODO: Save to a file only there are new actions/updated actions to store, since last time.
   //TODO: Control the amount of backup files.
-  //TODO: Add a message to handle adding actions to the database.
-  //TODO: Add a message to update the status of an action.
 
   // Line structure:
   // date;time;action;param1,param2;status
@@ -83,9 +79,8 @@ class DatabaseActor(actionsFilePath: String) extends Actor with ActorLogging {
 
   override def receive: Receive = {
     case DatabaseActor.Shutdown => controlledTermination()
-    case action: DatabaseActor.Action =>
-      actions ++= Map(getActionKey(action) -> action)
-      log.info(s"Full actions map: ${actions.values.mkString("\n")}")
+    case action: DatabaseActor.Action => actions ++= Map(getActionKey(action) -> action)
+    case DatabaseActor.QueryUnfinishedActions => queryUnfinishedActions(sender())
     case PoisonPill => controlledTermination()
     case DatabaseActor.ReadyForWork =>
       readyToAcceptWork = true
@@ -181,4 +176,11 @@ class DatabaseActor(actionsFilePath: String) extends Actor with ActorLogging {
     val stringKey = action.date + action.time + action.action + action.params.mkString
     DatabaseActor.ActionKey(stringKey.hashCode)
   }
+
+  /**
+    * Reply to the sender of the query with the actions that are not finished.
+    * @param replyTo The sender of the query.
+    */
+  def queryUnfinishedActions(replyTo: ActorRef) : Unit =
+    actions.values.filter(_.status != DatabaseActor.ACTION_STATUS_FINISHED).foreach(replyTo ! _)
 }
