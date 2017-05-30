@@ -1,13 +1,13 @@
 package main
 
-import java.nio.file.Paths
+import java.nio.file.{Paths,Files}
 
 import akka.actor.{Actor, ActorLogging, PoisonPill, Props}
 import akka.stream._
 import akka.stream.scaladsl._
 import akka.util.ByteString
 
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by igor on 25/05/17.
@@ -21,7 +21,7 @@ object DatabaseActor {
   case object Shutdown
   case object ReadyForWork
 
-  case class Action(date: String, time: String, action: String, params: Array[String], status: Int)
+  case class Action(date: String, time: String, action: String, params: List[String], status: Int)
 
   def props(actionsFilePath: String): Props = Props(new DatabaseActor(actionsFilePath))
 }
@@ -35,7 +35,7 @@ class DatabaseActor(actionsFilePath: String) extends Actor with ActorLogging {
   //TODO: Add a message to update the status of an action.
 
   // Line structure:
-  // date;time;action;"param1,param2";status
+  // date;time;action;param1,param2;status
   val fieldsDelimiter = ";"
   val paramsDelimiter = ","
   var readyToAcceptWork = false
@@ -79,6 +79,7 @@ class DatabaseActor(actionsFilePath: String) extends Actor with ActorLogging {
 
   override def receive: Receive = {
     case DatabaseActor.Shutdown => controlledTermination()
+    case action: DatabaseActor.Action => log.info(s"Got Action: $action")
     case PoisonPill => controlledTermination()
     case DatabaseActor.ReadyForWork =>
       readyToAcceptWork = true
@@ -94,11 +95,11 @@ class DatabaseActor(actionsFilePath: String) extends Actor with ActorLogging {
 
   /**
     * This function opens and loads the actions in the actions file.
+    * Filters out comments.
     * @param fileName The name of the actions files to open.
     * @return A list of strings. Each string represents an action.
     */
-  def loadActionsFile(fileName: String) : List[String] = {
-    var actionsToReturn = List.empty[String]
+  def loadActionsFile(fileName: String) : Unit = {
     val file = Paths.get(fileName)
 
     val fileContents =
@@ -107,31 +108,51 @@ class DatabaseActor(actionsFilePath: String) extends Actor with ActorLogging {
         .runWith(Sink.seq[ByteString])(materializer)
 
     fileContents.onComplete({
-      case Success(lines) => actionsToReturn = lines.map(_.toString).toList
+      case Success(lines) =>
+        val actions = lines.map(_.utf8String).mkString.split("\n").filter(!_.startsWith("#")).map(convertToAction)
+        actions.filter(_.isDefined).foreach(self ! _.get)
       case Failure(excp) =>
         log.error(s"Error with reading actions file: $fileName")
         log.error(excp.getStackTrace.mkString("\n"))
         log.error("Terminating the application....")
         context.system.terminate
     })(context.dispatcher)
-
-    actionsToReturn
   }
-//
-//  /**
-//    * Returns a list of un-finished actions.
-//    * @param fileName The file name of the actions.
-//    * @return List of un-finished actions.
-//    */
-//  def loadUnFinishedActions(fileName: String) : List[main.DatabaseActor.Action] = {
-//    loadActionsFile(fileName).map(line => {
-//      val Array(date, time, action, params, status) = line.split(fieldsDelimiter)
-//      val actionParams = params.split(paramsDelimiter)
-//      main.DatabaseActor.Action(date,time,action,actionParams,status.asInstanceOf[ActionStatus.Status])
-//    }).filter(action => !action.status.equals(ActionStatus.FINISHED))
-//  }
-//
-//  def createActionsFile(fileName: String) : Unit = {
-//    val file = new Files()
-//  }
+
+  /**
+    * This function converts action string into an Action object.
+    * @param rawAction An action string that was read from an action file.
+    * @return The Action object or None.
+    */
+  def convertToAction(rawAction: String) : Option[DatabaseActor.Action] = {
+    val parts = rawAction.split(fieldsDelimiter)
+    log.info(s"Got parts: ${parts.toList}")
+
+    validateRawAction(parts) match {
+      case true =>
+        val params = parts(3).split(paramsDelimiter).toList
+        log.info(s"Params are: $params")
+        log.info(s"Status is: ${parts(4)}")
+
+        Try(parts(4).toInt) match {
+          case Success(x) =>
+            log.info("toInt success")
+            Some(DatabaseActor.Action(parts(0),parts(1),parts(2),params,x))
+          case Failure(e) =>
+            log.info("toInt failure")
+            None
+        }
+
+      case false =>
+        log.info("Invalid raw action !")
+        None
+    }
+  }
+
+  /**
+    * Checks if there is enough parts in the action.
+    * @param parts An array of parts of the action.
+    * @return true if enough parts.
+    */
+  def validateRawAction(parts: Array[String]) : Boolean = if (parts.length == 5) true else false
 }
