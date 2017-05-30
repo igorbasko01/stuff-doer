@@ -1,4 +1,5 @@
-import akka.actor.Actor.Receive
+package main
+
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
@@ -41,6 +42,7 @@ class WebServerActor(hostname: String, port: Int) extends Actor with ActorLoggin
   override def preStart(): Unit = {
     log.info("Starting...")
     bindingFuture = Http(context.system).bindAndHandle(route, hostname, port)
+    log.info("Started !")
   }
 
   override def postStop(): Unit = {

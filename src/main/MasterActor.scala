@@ -1,4 +1,7 @@
+package main
+
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props, Terminated}
+import utils.Configuration
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -6,20 +9,16 @@ import scala.collection.mutable.ArrayBuffer
   * Created by igor on 10/05/17.
   */
 object MasterActor {
-
-  def props(): Props = Props(new MasterActor)
+  def props(config: Configuration): Props = Props(new MasterActor(config))
 }
 
-class MasterActor extends Actor with ActorLogging {
-
-  //TODO: Create some sort of "Database" actor.
-
+class MasterActor(config: Configuration) extends Actor with ActorLogging {
   val watched = ArrayBuffer.empty[ActorRef]
 
-  val webServer = context.actorOf(WebServerActor.props("localhost", 9080),"WebServerActor")
+  val webServer = context.actorOf(WebServerActor.props("localhost", 9080),"main.WebServerActor")
   watched += webServer
 
-  val dataBase = context.actorOf(DatabaseActor.props(), "DatabaseActor")
+  val dataBase = context.actorOf(DatabaseActor.props(config.actionsFile), "main.DatabaseActor")
   watched += dataBase
 
   // Watch all the child actors.

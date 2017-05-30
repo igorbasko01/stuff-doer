@@ -1,6 +1,8 @@
-import akka.actor.{Actor, ActorLogging, PoisonPill, Props}
+package main
+
 import java.nio.file.Paths
 
+import akka.actor.{Actor, ActorLogging, PoisonPill, Props}
 import akka.stream._
 import akka.stream.scaladsl._
 import akka.util.ByteString
@@ -21,10 +23,10 @@ object DatabaseActor {
 
   case class Action(date: String, time: String, action: String, params: Array[String], status: Int)
 
-  def props(): Props = Props(new DatabaseActor)
+  def props(actionsFilePath: String): Props = Props(new DatabaseActor(actionsFilePath))
 }
 
-class DatabaseActor extends Actor with ActorLogging {
+class DatabaseActor(actionsFilePath: String) extends Actor with ActorLogging {
 
   //TODO: Use akka streams to read the actions file.
   //TODO: Read the actions file, or create a new one if it doesn't exist.
@@ -36,7 +38,6 @@ class DatabaseActor extends Actor with ActorLogging {
   // date;time;action;"param1,param2";status
   val fieldsDelimiter = ";"
   val paramsDelimiter = ","
-  val actionsFilePath = "/some/place"
   var readyToAcceptWork = false
 
   val materializer = ActorMaterializer()(context)
@@ -44,7 +45,7 @@ class DatabaseActor extends Actor with ActorLogging {
   override def preStart(): Unit = {
     log.info("Starting...")
 
-    loadActionsFile("actions.txt")
+    loadActionsFile(actionsFilePath)
 
     //    val source: Source[Int, NotUsed] = Source(1 to 100)
 
@@ -52,7 +53,7 @@ class DatabaseActor extends Actor with ActorLogging {
 //      .zipWith(Source(0 to 100))((num, idx) => s"$idx! = $num")
 //      .throttle(1,1.second, 1, ThrottleMode.shaping)
 //      .runWith(Sink.foreach(println))(materializer)
-//      .onComplete(_ => self ! DatabaseActor.ReadyForWork)(context.dispatcher)
+//      .onComplete(_ => self ! main.DatabaseActor.ReadyForWork)(context.dispatcher)
 //
 //    def lineSink(fileName: String): Sink[String, Future[IOResult]] =
 //      Flow[String]
@@ -122,11 +123,11 @@ class DatabaseActor extends Actor with ActorLogging {
 //    * @param fileName The file name of the actions.
 //    * @return List of un-finished actions.
 //    */
-//  def loadUnFinishedActions(fileName: String) : List[DatabaseActor.Action] = {
+//  def loadUnFinishedActions(fileName: String) : List[main.DatabaseActor.Action] = {
 //    loadActionsFile(fileName).map(line => {
 //      val Array(date, time, action, params, status) = line.split(fieldsDelimiter)
 //      val actionParams = params.split(paramsDelimiter)
-//      DatabaseActor.Action(date,time,action,actionParams,status.asInstanceOf[ActionStatus.Status])
+//      main.DatabaseActor.Action(date,time,action,actionParams,status.asInstanceOf[ActionStatus.Status])
 //    }).filter(action => !action.status.equals(ActionStatus.FINISHED))
 //  }
 //
