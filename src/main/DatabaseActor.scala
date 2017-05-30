@@ -28,9 +28,12 @@ object DatabaseActor {
 
 class DatabaseActor(actionsFilePath: String) extends Actor with ActorLogging {
 
-  //TODO: Use akka streams to read the actions file.
-  //TODO: Read the actions file, or create a new one if it doesn't exist.
-  //TODO: Test what happens when you try to open a file that doesn't exist.
+  //TODO: Create a function that makes a key of the action.
+  //TODO: Store the actions in a map of actions, using the key object and the Action itself.
+  //TODO: If there are un-finished actions in the actions map, send them to the appropriate actor
+  //TODO: Save actions to new actions file.
+  //TODO: Save to a file only there are new actions/updated actions to store, since last time.
+  //TODO: Control the amount of backup files.
   //TODO: Add a message to handle adding actions to the database.
   //TODO: Add a message to update the status of an action.
 
