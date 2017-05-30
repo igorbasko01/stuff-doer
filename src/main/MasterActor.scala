@@ -15,11 +15,11 @@ object MasterActor {
 class MasterActor(config: Configuration) extends Actor with ActorLogging {
   val watched = ArrayBuffer.empty[ActorRef]
 
-  val webServer = context.actorOf(WebServerActor.props(config.hostname, config.portNum),"main.WebServerActor")
-  watched += webServer
-
   val dataBase = context.actorOf(DatabaseActor.props(config.actionsFile), "main.DatabaseActor")
   watched += dataBase
+
+  val webServer = context.actorOf(WebServerActor.props(config.hostname, config.portNum, dataBase),"main.WebServerActor")
+  watched += webServer
 
   // Watch all the child actors.
   watched.foreach(context.watch)

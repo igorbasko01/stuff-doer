@@ -27,7 +27,7 @@ object DatabaseActor {
 }
 
 class DatabaseActor(actionsFilePath: String) extends Actor with ActorLogging {
-  
+
   //TODO: Save actions to new actions file.
   //TODO: Save to a file only there are new actions/updated actions to store, since last time.
   //TODO: Control the amount of backup files.
@@ -182,5 +182,5 @@ class DatabaseActor(actionsFilePath: String) extends Actor with ActorLogging {
     * @param replyTo The sender of the query.
     */
   def queryUnfinishedActions(replyTo: ActorRef) : Unit =
-    actions.values.filter(_.status != DatabaseActor.ACTION_STATUS_FINISHED).foreach(replyTo ! _)
+    replyTo ! actions.values.filter(_.status != DatabaseActor.ACTION_STATUS_FINISHED).toList
 }
