@@ -1,0 +1,2 @@
+date1;time1;action1;param1,param2;0
+date2;time2;action2;param1,param2;0

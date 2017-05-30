@@ -1,6 +1,6 @@
 package main
 
-import java.nio.file.{Paths,Files}
+import java.nio.file.{Files, Paths}
 
 import akka.actor.{Actor, ActorLogging, PoisonPill, Props}
 import akka.stream._
@@ -22,14 +22,13 @@ object DatabaseActor {
   case object ReadyForWork
 
   case class Action(date: String, time: String, action: String, params: List[String], status: Int)
+  case class ActionKey(key: Int)
 
   def props(actionsFilePath: String): Props = Props(new DatabaseActor(actionsFilePath))
 }
 
 class DatabaseActor(actionsFilePath: String) extends Actor with ActorLogging {
 
-  //TODO: Create a function that makes a key of the action.
-  //TODO: Store the actions in a map of actions, using the key object and the Action itself.
   //TODO: If there are un-finished actions in the actions map, send them to the appropriate actor
   //TODO: Save actions to new actions file.
   //TODO: Save to a file only there are new actions/updated actions to store, since last time.
@@ -42,6 +41,8 @@ class DatabaseActor(actionsFilePath: String) extends Actor with ActorLogging {
   val fieldsDelimiter = ";"
   val paramsDelimiter = ","
   var readyToAcceptWork = false
+
+  var actions = Map.empty[DatabaseActor.ActionKey, DatabaseActor.Action]
 
   val materializer = ActorMaterializer()(context)
 
@@ -82,7 +83,9 @@ class DatabaseActor(actionsFilePath: String) extends Actor with ActorLogging {
 
   override def receive: Receive = {
     case DatabaseActor.Shutdown => controlledTermination()
-    case action: DatabaseActor.Action => log.info(s"Got Action: $action")
+    case action: DatabaseActor.Action =>
+      actions ++= Map(getActionKey(action) -> action)
+      log.info(s"Full actions map: ${actions.values.mkString("\n")}")
     case PoisonPill => controlledTermination()
     case DatabaseActor.ReadyForWork =>
       readyToAcceptWork = true
@@ -168,4 +171,14 @@ class DatabaseActor(actionsFilePath: String) extends Actor with ActorLogging {
     * @return true if enough parts.
     */
   def validateRawAction(parts: Array[String]) : Boolean = if (parts.length == 5) true else false
+
+  /**
+    * Get the action's key using its first four values: date, time, action, params
+    * @param action The action for which to determine the key.
+    * @return Returns an object of actions key.
+    */
+  def getActionKey(action: DatabaseActor.Action): DatabaseActor.ActionKey = {
+    val stringKey = action.date + action.time + action.action + action.params.mkString
+    DatabaseActor.ActionKey(stringKey.hashCode)
+  }
 }
