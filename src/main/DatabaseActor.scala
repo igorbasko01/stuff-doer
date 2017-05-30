@@ -102,6 +102,16 @@ class DatabaseActor(actionsFilePath: String) extends Actor with ActorLogging {
   def loadActionsFile(fileName: String) : Unit = {
     val file = Paths.get(fileName)
 
+    if (!Files.exists(file)) {
+      log.info(s"Actions file:[$file] doesn't exists creating a new one.")
+      Try(Files.createFile(file)) match {
+        case Success(path) => log.info(s"Actions file created: [$file]")
+        case Failure(ex) =>
+          log.error(s"Error creating file: [$file], reason: ")
+          log.error(ex.getStackTrace.mkString("\n"))
+      }
+    }
+
     val fileContents =
       FileIO
         .fromPath(file)

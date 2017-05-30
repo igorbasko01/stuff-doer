@@ -1,2 +1,0 @@
-#date;time;action;param1,param2;status
-2017-05-06;23:00:30;copyfile;source,dest;0
