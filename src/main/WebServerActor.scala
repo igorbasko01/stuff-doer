@@ -4,6 +4,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.ask
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
+import akka.http.scaladsl.coding.Deflate
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse}
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
@@ -25,31 +26,37 @@ object WebServerActor {
 
 class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) extends Actor with ActorLogging {
 
+  //TODO: Add a get request with parameters.
+  //TODO: Enable the webserver to add actions to the database. But first it needs be validated through masterActor.
+
   implicit val materializer = ActorMaterializer()
 
   var bindingFuture: Future[ServerBinding] = _
 
-  val welcomeHtmlPage = "<html><body>Welcome to stuff doer !</body></html>"
-  val shutdownHtmlPage = "<html><body>Shutting down</body></html>"
-  val underConstructionHtmlPage = "<html><body>This request is under construction...</body></html>"
-  val htmlHead = "<html><body>"
-  val htmlTail = "</body></html>"
-
   val route =
     get {
       pathSingleSlash {
-        complete(HttpResponse(entity = HttpEntity(ContentTypes.`text/html(UTF-8)`,welcomeHtmlPage)))
+        complete(s"Welcome to stuff doer !")
       } ~
       path("shutdown") {
         self ! WebServerActor.Shutdown
-        complete(HttpResponse(entity = HttpEntity(ContentTypes.`text/html(UTF-8)`,shutdownHtmlPage)))
+        complete(s"Shutting down...")
       } ~
       path("unfinishedactions") {
         implicit val timeout = Timeout(10.seconds)
-        val response = databaseActor ? DatabaseActor.QueryUnfinishedActions
-        val result = Await.result(response, timeout.duration)
-        val htmlResp = s"$htmlHead${result.toString}$htmlTail"
-        complete(HttpResponse(entity = HttpEntity(ContentTypes.`text/html(UTF-8)`,htmlResp)))
+        val response = (databaseActor ? DatabaseActor.QueryUnfinishedActions).mapTo[List[String]]
+
+        onSuccess(response) {
+          case res: List[String] =>
+            complete(s"Unfinished actions\n${res.mkString("\n")}")
+          case _ =>
+            complete(s"Error !")
+        }
+      } ~
+      path("copy_file") {
+        parameters('src, 'dest) { (src, dest) =>
+          complete(s"Going to copy from $src to $dest")
+        }
       }
     }
 
