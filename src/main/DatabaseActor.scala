@@ -15,6 +15,7 @@ import scala.util.{Failure, Success, Try}
 object DatabaseActor {
   val ACTION_STATUS_INITIAL = 0
   val ACTION_STATUS_FINISHED = 99
+  val ACTION_COPY_FILE = "copy_file"
 
   case object Shutdown
   case object ReadyForWork

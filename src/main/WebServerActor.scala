@@ -9,6 +9,9 @@ import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse}
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
+import java.time
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -25,9 +28,6 @@ object WebServerActor {
 }
 
 class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) extends Actor with ActorLogging {
-
-  //TODO: Add a get request with parameters.
-  //TODO: Enable the webserver to add actions to the database. But first it needs be validated through masterActor.
 
   implicit val materializer = ActorMaterializer()
 
@@ -55,7 +55,12 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
       } ~
       path("copy_file") {
         parameters('src, 'dest) { (src, dest) =>
-          complete(s"Going to copy from $src to $dest")
+          val dateTimeObject = LocalDateTime.now()
+          val date = dateTimeObject.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+          val time = dateTimeObject.format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+          val newAction = DatabaseActor.Action(date,time,DatabaseActor.ACTION_COPY_FILE,List(src,dest),DatabaseActor.ACTION_STATUS_INITIAL)
+          databaseActor ! newAction
+          complete(s"Adding copy action: to copy from $src to $dest")
         }
       }
     }
