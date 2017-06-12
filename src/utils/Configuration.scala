@@ -7,7 +7,8 @@ import com.typesafe.config.Config
   */
 class Configuration extends Serializable {
 
-  var actionsFile: String = _
+  var actionsFilesPath: String = _
+  var actionsFilePrfx: String = _
   var hostname: String = _
   var portNum: Int = _
 
@@ -19,7 +20,8 @@ class Configuration extends Serializable {
     */
   def loadConfig(config: Config): Boolean = {
     try {
-      actionsFile = config.getString("database.actions.file")
+      actionsFilesPath = config.getString("database.actions.files.path")
+      actionsFilePrfx = config.getString("database.actions.files.prefix")
       hostname = config.getString("webserver.hostname")
       portNum = config.getInt("webserver.port")
       true

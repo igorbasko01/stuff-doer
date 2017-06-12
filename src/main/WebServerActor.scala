@@ -55,7 +55,8 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
           val dateTimeObject = LocalDateTime.now()
           val date = dateTimeObject.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
           val time = dateTimeObject.format(DateTimeFormatter.ofPattern("HH:mm:ss"))
-          val newAction = DatabaseActor.Action(date,time,DatabaseActor.ACTION_COPY_FILE,List(src,dest),DatabaseActor.ACTION_STATUS_INITIAL)
+          val newAction = DatabaseActor.Action(date,time,DatabaseActor.ACTION_COPY_FILE,List(src,dest),
+            DatabaseActor.ACTION_STATUS_INITIAL)
           databaseActor ! newAction
           complete(s"Adding copy action: to copy from $src to $dest")
         }

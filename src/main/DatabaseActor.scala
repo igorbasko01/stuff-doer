@@ -24,11 +24,13 @@ object DatabaseActor {
   case class Action(date: String, time: String, action: String, params: List[String], status: Int)
   case class ActionKey(key: Int)
 
-  def props(actionsFilePath: String): Props = Props(new DatabaseActor(actionsFilePath))
+  def props(actionsFilesPath: String, actionsFilesPrfx: String): Props =
+    Props(new DatabaseActor(actionsFilesPath, actionsFilesPrfx))
 }
 
-class DatabaseActor(actionsFilePath: String) extends Actor with ActorLogging {
+class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends Actor with ActorLogging {
 
+  //TODO: Get a path to the actions files. And decide which file to read. Instead of getting the file from the master actor.
   //TODO: Save actions to new actions file.
   //TODO: Save to a file only there are new actions/updated actions to store, since last time.
   //TODO: Control the amount of backup files.
@@ -46,7 +48,9 @@ class DatabaseActor(actionsFilePath: String) extends Actor with ActorLogging {
   override def preStart(): Unit = {
     log.info("Starting...")
 
-    loadActionsFile(actionsFilePath)
+    val fileToLoad = findActionsFileToLoad(actionsFilesPath)
+
+    loadActionsFile(fileToLoad)
 
     //    val source: Source[Int, NotUsed] = Source(1 to 100)
 
@@ -93,6 +97,12 @@ class DatabaseActor(actionsFilePath: String) extends Actor with ActorLogging {
 
   def controlledTermination(): Unit = {
     context.stop(self)
+  }
+
+  //TODO: Finish this function.
+  // This function should find the last actions files in the path that should be loaded.
+  def findActionsFileToLoad(actionsPath: String) : String = {
+    "actions.txt"
   }
 
   /**
