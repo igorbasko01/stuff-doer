@@ -9,6 +9,8 @@ import akka.util.ByteString
 
 import scala.util.{Failure, Success, Try}
 
+import scala.collection.JavaConverters._
+
 /**
   * Created by igor on 25/05/17.
   */
@@ -48,7 +50,7 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
   override def preStart(): Unit = {
     log.info("Starting...")
 
-    val fileToLoad = findActionsFileToLoad(actionsFilesPath)
+    val fileToLoad = findActionsFileToLoad(actionsFilesPath, actionsFilesPrfx)
 
     loadActionsFile(fileToLoad)
 
@@ -101,7 +103,8 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
 
   //TODO: Finish this function.
   // This function should find the last actions files in the path that should be loaded.
-  def findActionsFileToLoad(actionsPath: String) : String = {
+  def findActionsFileToLoad(actionsPath: String, filePrfx: String) : String = {
+    val listOfFiles = Files.list(Paths.get(actionsPath)).iterator().asScala
     "actions.txt"
   }
 

@@ -14,11 +14,9 @@ object MasterActor {
 
 class MasterActor(config: Configuration) extends Actor with ActorLogging {
 
-  //TODO: Pass the actionsPath and prefix to the database actor.
-
   val watched = ArrayBuffer.empty[ActorRef]
 
-  val dataBase = context.actorOf(DatabaseActor.props(config.actionsFile), "main.DatabaseActor")
+  val dataBase = context.actorOf(DatabaseActor.props(config.actionsFilesPath, config.actionsFilePrfx), "main.DatabaseActor")
   watched += dataBase
 
   val webServer = context.actorOf(WebServerActor.props(config.hostname, config.portNum, dataBase),"main.WebServerActor")
