@@ -31,8 +31,7 @@ object DatabaseActor {
 }
 
 class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends Actor with ActorLogging {
-
-  //TODO: Get a path to the actions files. And decide which file to read. Instead of getting the file from the master actor.
+  
   //TODO: Save actions to new actions file.
   //TODO: Save to a file only there are new actions/updated actions to store, since last time.
   //TODO: Control the amount of backup files.
@@ -101,8 +100,13 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
     context.stop(self)
   }
 
-  //TODO: Finish this function.
-  // This function should find the last actions files in the path that should be loaded.
+  /**
+    * This function finds out the latest action file in a specified path and a specified prefix.
+    * The date should be incorporated in the name of the files.
+    * @param actionsPath The path where the action files reside.
+    * @param filePrfx The prefix of the action file. The portion of the name without the date.
+    * @return The full name of the action file (without the path).
+    */
   def findActionsFileToLoad(actionsPath: String, filePrfx: String) : String = {
     val listOfFiles = Files.list(Paths.get(actionsPath)).iterator().asScala
 
