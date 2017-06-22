@@ -1,6 +1,7 @@
 package main
 
 import java.nio.file.{Files, Paths}
+import java.time.LocalDateTime
 
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props}
 import akka.stream._
@@ -8,7 +9,6 @@ import akka.stream.scaladsl._
 import akka.util.ByteString
 
 import scala.util.{Failure, Success, Try}
-
 import scala.collection.JavaConverters._
 
 /**
@@ -105,7 +105,14 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
   // This function should find the last actions files in the path that should be loaded.
   def findActionsFileToLoad(actionsPath: String, filePrfx: String) : String = {
     val listOfFiles = Files.list(Paths.get(actionsPath)).iterator().asScala
-    "actions.txt"
+
+    if (listOfFiles.isEmpty) throw new Exception("No action files found... Aborting...")
+
+    val actionFiles = listOfFiles.filter(_.getFileName.toString.startsWith(filePrfx))
+    val fileNames = actionFiles.map(file => file.getFileName.toString)
+    val latestFile = fileNames.toList.sortBy(x=>x).last
+    log.info(s"Latest file is : $latestFile")
+    latestFile
   }
 
   /**
