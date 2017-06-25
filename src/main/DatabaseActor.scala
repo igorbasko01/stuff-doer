@@ -1,7 +1,6 @@
 package main
 
 import java.nio.file.{Files, Paths}
-import java.time.LocalDateTime
 
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props}
 import akka.stream._
@@ -31,9 +30,9 @@ object DatabaseActor {
 }
 
 class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends Actor with ActorLogging {
-  
+
   //TODO: Save actions to new actions file.
-  //TODO: Save to a file only there are new actions/updated actions to store, since last time.
+  //TODO: Save to a file only if there are new actions/updated actions to store, since last time.
   //TODO: Control the amount of backup files.
 
   // Line structure:
@@ -51,7 +50,11 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
 
     val fileToLoad = findActionsFileToLoad(actionsFilesPath, actionsFilesPrfx)
 
-    loadActionsFile(fileToLoad)
+    if (fileToLoad.isEmpty) {
+      log.error("Could not determine actions file. Terminating.")
+      context.stop(self)
+    }
+    else loadActionsFile(fileToLoad)
 
     //    val source: Source[Int, NotUsed] = Source(1 to 100)
 
@@ -110,11 +113,14 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
   def findActionsFileToLoad(actionsPath: String, filePrfx: String) : String = {
     val listOfFiles = Files.list(Paths.get(actionsPath)).iterator().asScala
 
-    if (listOfFiles.isEmpty) throw new Exception("No action files found... Aborting...")
-
     val actionFiles = listOfFiles.filter(_.getFileName.toString.startsWith(filePrfx))
-    val fileNames = actionFiles.map(file => file.getFileName.toString)
-    val latestFile = fileNames.toList.sortBy(x=>x).last
+
+    val latestFile =  if (actionFiles.isEmpty) ""
+    else {
+      val fileNames = actionFiles.map(file => file.getFileName.toString)
+      fileNames.toList.sortBy(x=>x).last
+    }
+
     log.info(s"Latest file is : $latestFile")
     latestFile
   }

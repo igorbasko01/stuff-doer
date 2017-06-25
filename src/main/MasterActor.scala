@@ -45,8 +45,8 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
     * Terminate the actor safely if, no more actors to watch, or the webServer actor is stopped.
     */
   def controlledTermination(): Unit = {
-    // If webserver is not alive stop all the other actors and stop the application.
-    if (!watched.contains(webServer)) watched.foreach(_ ! PoisonPill)
+    // If webserver or database actor is not alive stop all the other actors and stop the application.
+    if (!watched.contains(webServer) || !watched.contains(dataBase)) watched.foreach(_ ! PoisonPill)
     if (watched.isEmpty) context.stop(self)
   }
 }
