@@ -9,6 +9,7 @@ import akka.util.ByteString
 
 import scala.util.{Failure, Success, Try}
 import scala.collection.JavaConverters._
+import java.sql.{Connection, DriverManager}
 
 /**
   * Created by igor on 25/05/17.
@@ -31,6 +32,7 @@ object DatabaseActor {
 
 class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends Actor with ActorLogging {
 
+  //TODO: Replace the actions architecture with an embedded data base.
   //TODO: Save actions to new actions file.
   //TODO: Save to a file only if there are new actions/updated actions to store, since last time.
   //TODO: Control the amount of backup files.
@@ -47,6 +49,10 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
 
   override def preStart(): Unit = {
     log.info("Starting...")
+
+    Class.forName("org.h2.Driver")
+    val conn: Connection = DriverManager.getConnection("jdbc:h2:~/test", "sa", "")
+    conn.close()
 
     val fileToLoad = findActionsFileToLoad(actionsFilesPath, actionsFilesPrfx)
 
