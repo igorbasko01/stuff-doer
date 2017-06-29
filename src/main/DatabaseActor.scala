@@ -52,6 +52,13 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
 
     Class.forName("org.h2.Driver")
     val conn: Connection = DriverManager.getConnection("jdbc:h2:~/test", "sa", "")
+    val result = conn.createStatement().executeQuery("select * from INFORMATION_SCHEMA.TABLES")
+    val rsmd = result.getMetaData
+    val colNumber = rsmd.getColumnCount
+    while (result.next()) {
+      val row = for (i <- 1 to colNumber) yield (rsmd.getColumnName(i),result.getString(i))
+      println(row.mkString(","))
+    }
     conn.close()
 
     val fileToLoad = findActionsFileToLoad(actionsFilesPath, actionsFilesPrfx)
