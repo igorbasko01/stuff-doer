@@ -32,6 +32,8 @@ object DatabaseActor {
 
 class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends Actor with ActorLogging {
 
+  //TODO: Test a creation of a table. That it stays over executions.
+  //TODO: Test an Insert and update statements. That they stay over executions.
   //TODO: Replace the actions architecture with an embedded data base.
   //TODO: Save actions to new actions file.
   //TODO: Save to a file only if there are new actions/updated actions to store, since last time.
