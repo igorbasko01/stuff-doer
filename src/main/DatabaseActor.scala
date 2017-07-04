@@ -11,6 +11,8 @@ import scala.util.{Failure, Success, Try}
 import scala.collection.JavaConverters._
 import java.sql.{Connection, DriverManager}
 
+import scala.collection.mutable.ArrayBuffer
+
 /**
   * Created by igor on 25/05/17.
   */
@@ -25,6 +27,7 @@ object DatabaseActor {
 
   case class Action(date: String, time: String, action: String, params: List[String], status: Int)
   case class ActionKey(key: Int)
+  case class QueryDB(query: String)
 
   def props(actionsFilesPath: String, actionsFilesPrfx: String): Props =
     Props(new DatabaseActor(actionsFilesPath, actionsFilesPrfx))
@@ -51,17 +54,6 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
 
   override def preStart(): Unit = {
     log.info("Starting...")
-
-    Class.forName("org.h2.Driver")
-    val conn: Connection = DriverManager.getConnection("jdbc:h2:~/test", "sa", "")
-    val result = conn.createStatement().executeQuery("select * from INFORMATION_SCHEMA.TABLES")
-    val rsmd = result.getMetaData
-    val colNumber = rsmd.getColumnCount
-    while (result.next()) {
-      val row = for (i <- 1 to colNumber) yield (rsmd.getColumnName(i),result.getString(i))
-      println(row.mkString(","))
-    }
-    conn.close()
 
     val fileToLoad = findActionsFileToLoad(actionsFilesPath, actionsFilesPrfx)
 
@@ -104,7 +96,8 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
   override def receive: Receive = {
     case DatabaseActor.Shutdown => controlledTermination()
     case action: DatabaseActor.Action => actions ++= Map(getActionKey(action) -> action)
-    case DatabaseActor.QueryUnfinishedActions => queryUnfinishedActions(sender())
+    case DatabaseActor.QueryUnfinishedActions => queryUnfinishedActions(sender)
+    case DatabaseActor.QueryDB(query) => sender ! queryDataBase(query)
     case PoisonPill => controlledTermination()
     case DatabaseActor.ReadyForWork =>
       readyToAcceptWork = true
@@ -229,4 +222,39 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
     */
   def queryUnfinishedActions(replyTo: ActorRef) : Unit =
     replyTo ! actions.values.filter(_.status != DatabaseActor.ACTION_STATUS_FINISHED).toList
+
+  /**
+    * This function executes a query against the database and returns the results as a one long string.
+    * @param query The query to execute.
+    * @return The result of the query as one long string.
+    */
+  def queryDataBase(query: String) : String = {
+    Class.forName("org.h2.Driver")
+    val conn: Connection = DriverManager.getConnection("jdbc:h2:~/test", "sa", "")
+
+    //"select * from INFORMATION_SCHEMA.TABLES"
+    log.info(s"Got the following query: $query")
+
+    val resultTry = Try(conn.createStatement().executeQuery(query))
+    val resultToReturn = resultTry match {
+      case Success(result) =>
+        val rsmd = result.getMetaData
+        val colNumber = rsmd.getColumnCount
+        val header = for (i <- 1 to colNumber) yield rsmd.getColumnName(i)
+        val resultArray = ArrayBuffer.empty[String]
+        resultArray += header.mkString(",")
+
+        while (result.next()) {
+          val row = for (i <- 1 to colNumber) yield result.getString(i)
+          resultArray += row.mkString(",")
+        }
+
+        resultArray.mkString("\n")
+      case Failure(e) => e.getMessage
+    }
+
+    conn.close()
+
+    resultToReturn
+  }
 }

@@ -60,6 +60,17 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
           databaseActor ! newAction
           complete(s"Adding copy action: to copy from $src to $dest")
         }
+      } ~
+      path("query") {
+        parameters('text) { (text) =>
+          implicit val timeout = Timeout(10.seconds)
+          val response = (databaseActor ? DatabaseActor.QueryDB(text)).mapTo[String]
+
+          onSuccess(response) {
+            case res: String => complete(s"Result: \n$res")
+            case _ => complete("Got some Error....")
+          }
+        }
       }
     }
 
