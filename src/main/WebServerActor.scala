@@ -26,6 +26,8 @@ object WebServerActor {
 
 class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) extends Actor with ActorLogging {
 
+  //TODO: Add a path to handle update/insert/create queries. It should be a different path than the query path.
+
   implicit val materializer = ActorMaterializer()
 
   var bindingFuture: Future[ServerBinding] = _
