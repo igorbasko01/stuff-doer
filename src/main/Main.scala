@@ -8,8 +8,6 @@ import utils.Configuration
   * Created by igor on 22/03/17.
   */
 object Main extends App {
-  //TODO: Read config file, and send it to the master actor some how.
-
   println("Loading configuration")
   val config = new Configuration
   if (!config.loadConfig(ConfigFactory.load())) {

@@ -9,7 +9,7 @@ import akka.util.ByteString
 
 import scala.util.{Failure, Success, Try}
 import scala.collection.JavaConverters._
-import java.sql.{Connection, DriverManager}
+import java.sql.{Connection, DriverManager, ResultSet}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -27,7 +27,7 @@ object DatabaseActor {
 
   case class Action(date: String, time: String, action: String, params: List[String], status: Int)
   case class ActionKey(key: Int)
-  case class QueryDB(query: String)
+  case class QueryDB(query: String, update: Boolean = false)
 
   def props(actionsFilesPath: String, actionsFilesPrfx: String): Props =
     Props(new DatabaseActor(actionsFilesPath, actionsFilesPrfx))
@@ -35,13 +35,9 @@ object DatabaseActor {
 
 class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends Actor with ActorLogging {
 
-  //TODO: Add a function to handle updates. Similar to the query function.
-  //TODO: Test a creation of a table. That it stays over executions.
-  //TODO: Test an Insert and update statements. That they stay over executions.
-  //TODO: Replace the actions architecture with an embedded data base.
-  //TODO: Save actions to new actions file.
-  //TODO: Save to a file only if there are new actions/updated actions to store, since last time.
-  //TODO: Control the amount of backup files.
+  //TODO: Remove the functions that are related to actions files.
+  //TODO: Remove the configurations that are no longer necessary.
+  //TODO: Load the unfinished actions from the database.
 
   // Line structure:
   // date;time;action;param1,param2;status
@@ -98,7 +94,7 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
     case DatabaseActor.Shutdown => controlledTermination()
     case action: DatabaseActor.Action => actions ++= Map(getActionKey(action) -> action)
     case DatabaseActor.QueryUnfinishedActions => queryUnfinishedActions(sender)
-    case DatabaseActor.QueryDB(query) => sender ! queryDataBase(query)
+    case DatabaseActor.QueryDB(query, update) => sender ! queryDataBase(query, update)
     case PoisonPill => controlledTermination()
     case DatabaseActor.ReadyForWork =>
       readyToAcceptWork = true
@@ -229,16 +225,21 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
     * @param query The query to execute.
     * @return The result of the query as one long string.
     */
-  def queryDataBase(query: String) : String = {
+  def queryDataBase(query: String, update: Boolean = false) : String = {
     Class.forName("org.h2.Driver")
     val conn: Connection = DriverManager.getConnection("jdbc:h2:~/test", "sa", "")
 
     //"select * from INFORMATION_SCHEMA.TABLES"
     log.info(s"Got the following query: $query")
 
-    val resultTry = Try(conn.createStatement().executeQuery(query))
+    val resultTry =
+    if (!update)
+      Try(conn.createStatement().executeQuery(query))
+    else
+      Try(conn.createStatement().executeUpdate(query))
+
     val resultToReturn = resultTry match {
-      case Success(result) =>
+      case Success(result: ResultSet) =>
         val rsmd = result.getMetaData
         val colNumber = rsmd.getColumnCount
         val header = for (i <- 1 to colNumber) yield rsmd.getColumnName(i)
@@ -251,6 +252,8 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
         }
 
         resultArray.mkString("\n")
+      case Success(result: Int) => s"Updated $result rows !"
+      case Success(result) => s"Unexpected result: ${result.toString}"
       case Failure(e) => e.getMessage
     }
 

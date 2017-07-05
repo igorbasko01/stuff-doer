@@ -26,8 +26,6 @@ object WebServerActor {
 
 class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) extends Actor with ActorLogging {
 
-  //TODO: Add a path to handle update/insert/create queries. It should be a different path than the query path.
-
   implicit val materializer = ActorMaterializer()
 
   var bindingFuture: Future[ServerBinding] = _
@@ -67,6 +65,17 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
         parameters('text) { (text) =>
           implicit val timeout = Timeout(10.seconds)
           val response = (databaseActor ? DatabaseActor.QueryDB(text)).mapTo[String]
+
+          onSuccess(response) {
+            case res: String => complete(s"Result: \n$res")
+            case _ => complete("Got some Error....")
+          }
+        }
+      } ~
+      path("update") {
+        parameters('text) { (text) =>
+          implicit val timeout = Timeout(10.seconds)
+          val response = (databaseActor ? DatabaseActor.QueryDB(text,update = true)).mapTo[String]
 
           onSuccess(response) {
             case res: String => complete(s"Result: \n$res")
