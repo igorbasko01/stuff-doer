@@ -261,4 +261,8 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
 
     resultToReturn
   }
+
+  def getUnfinishedActions : List[DatabaseActor.Action] = {
+    
+  }
 }
