@@ -263,6 +263,7 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
   }
 
   def getUnfinishedActions : List[DatabaseActor.Action] = {
-    
+    queryDataBase(s"select * from stuff_doer.actions where STATUS=${DatabaseActor.ACTION_STATUS_INITIAL}")
+    List.empty[DatabaseActor.Action]
   }
 }
