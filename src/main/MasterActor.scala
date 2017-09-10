@@ -9,6 +9,12 @@ import scala.collection.mutable.ArrayBuffer
   * Created by igor on 10/05/17.
   */
 object MasterActor {
+
+  //TODO: Add an implementation to fill the map
+  // Maybe each actor will decide on the actions it handles and will reply to the master when it is
+  // up with the action it handles.
+  val actionsToActors = Map.empty[String, ActorRef]
+
   def props(config: Configuration): Props = Props(new MasterActor(config))
 }
 
