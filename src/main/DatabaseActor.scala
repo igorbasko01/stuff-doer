@@ -52,13 +52,10 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
   override def preStart(): Unit = {
     log.info("Starting...")
 
-    val fileToLoad = findActionsFileToLoad(actionsFilesPath, actionsFilesPrfx)
+    // Get unfinished actions and handle them.
+    val unfinishedActions = getUnfinishedActions
 
-    if (fileToLoad.isEmpty) {
-      log.error("Could not determine actions file. Terminating.")
-      context.stop(self)
-    }
-    else loadActionsFile(fileToLoad)
+    unfinishedActions.foreach(action => MasterActor.actionsToActors(action.action) ! action)
 
     //    val source: Source[Int, NotUsed] = Source(1 to 100)
 
