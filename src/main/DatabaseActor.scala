@@ -223,9 +223,9 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
   /**
     * This function executes a query against the database and returns the results as a one long string.
     * @param query The query to execute.
-    * @return The result of the query as one long string.
+    * @return The result of the query as an array of fields and a relevant message.
     */
-  def queryDataBase(query: String, update: Boolean = false) : String = {
+  def queryDataBase(query: String, update: Boolean = false) : (Option[ArrayBuffer[List[String]]], String) = {
     Class.forName("org.h2.Driver")
     val conn: Connection = DriverManager.getConnection("jdbc:h2:~/test", "sa", "")
 
@@ -243,22 +243,27 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
         val rsmd = result.getMetaData
         val colNumber = rsmd.getColumnCount
         val header = for (i <- 1 to colNumber) yield rsmd.getColumnName(i)
-        val resultArray = ArrayBuffer.empty[String]
-        resultArray += header.mkString(",")
+        val resultArray = ArrayBuffer.empty[List[String]]
+        resultArray += header.toList
 
         while (result.next()) {
           val row = for (i <- 1 to colNumber) yield result.getString(i)
-          resultArray += row.mkString(",")
+          resultArray += row.toList
         }
 
-        resultArray.mkString("\n")
-      case Success(result: Int) => s"Updated $result rows !"
-      case Success(result) => s"Unexpected result: ${result.toString}"
-      case Failure(e) => e.getMessage
+        (Some(resultArray), "")
+      case Success(result: Int) => (None, s"Updated $result rows !")
+      case Success(result) => (None, s"Unexpected result: ${result.toString}")
+      case Failure(e) => (None, e.getMessage)
     }
 
     conn.close()
 
     resultToReturn
+  }
+
+  def getUnfinishedActions : List[DatabaseActor.Action] = {
+    queryDataBase(s"select * from stuff_doer.actions where STATUS=${DatabaseActor.ACTION_STATUS_INITIAL}")
+    List.empty[DatabaseActor.Action]
   }
 }
