@@ -263,6 +263,10 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
     QueryResult(resultToReturn._1,resultToReturn._2)
   }
 
+  /**
+    * Queries the database and returns a list of unfinished actions.
+    * @return An array of unfinished actions.
+    */
   def getUnfinishedActions : ArrayBuffer[DatabaseActor.Action] = {
     val result = queryDataBase(s"select * from stuff_doer.actions where STATUS=${DatabaseActor.ACTION_STATUS_INITIAL}")
     val actions = result match {
