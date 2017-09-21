@@ -59,6 +59,7 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
     // Get unfinished actions and handle them.
     val unfinishedActions = getUnfinishedActions
 
+    // TODO: Handle the case when the action key is not in the map.
     unfinishedActions.foreach(action => MasterActor.actionsToActors(action.action) ! action)
 
     //    val source: Source[Int, NotUsed] = Source(1 to 100)
