@@ -11,6 +11,8 @@ import scala.util.{Failure, Success, Try}
 import scala.collection.JavaConverters._
 import java.sql.{Connection, DriverManager, ResultSet}
 
+import main.DatabaseActor.QueryResult
+
 import scala.collection.mutable.ArrayBuffer
 
 /**
@@ -28,6 +30,7 @@ object DatabaseActor {
   case class Action(date: String, time: String, action: String, params: List[String], status: Int)
   case class ActionKey(key: Int)
   case class QueryDB(query: String, update: Boolean = false)
+  case class QueryResult(result: Option[ArrayBuffer[List[String]]], message: String)
 
   def props(actionsFilesPath: String, actionsFilesPrfx: String): Props =
     Props(new DatabaseActor(actionsFilesPath, actionsFilesPrfx))
@@ -223,7 +226,7 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
     * @param query The query to execute.
     * @return The result of the query as an array of fields and a relevant message.
     */
-  def queryDataBase(query: String, update: Boolean = false) : (Option[ArrayBuffer[List[String]]], String) = {
+  def queryDataBase(query: String, update: Boolean = false) : QueryResult = {
     Class.forName("org.h2.Driver")
     val conn: Connection = DriverManager.getConnection("jdbc:h2:~/test", "sa", "")
 
@@ -257,7 +260,7 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
 
     conn.close()
 
-    resultToReturn
+    QueryResult(resultToReturn._1,resultToReturn._2)
   }
 
   def getUnfinishedActions : List[DatabaseActor.Action] = {
