@@ -35,9 +35,10 @@ object DatabaseActor {
 
 class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends Actor with ActorLogging {
 
+  //TODO: Load the unfinished actions from the database. - Update the webserver actor to handle the new return type of
+  // getUnfinishedActions.
   //TODO: Remove the functions that are related to actions files.
   //TODO: Remove the configurations that are no longer necessary.
-  //TODO: Load the unfinished actions from the database.
 
   // Line structure:
   // date;time;action;param1,param2;status
