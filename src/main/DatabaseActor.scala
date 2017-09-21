@@ -226,7 +226,7 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
     * @param query The query to execute.
     * @return The result of the query as an array of fields and a relevant message.
     */
-  def queryDataBase(query: String, update: Boolean = false) : QueryResult = {
+  def queryDataBase(query: String, returnHeader: Boolean = false, update: Boolean = false) : QueryResult = {
     Class.forName("org.h2.Driver")
     val conn: Connection = DriverManager.getConnection("jdbc:h2:~/test", "sa", "")
 
@@ -245,7 +245,7 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
         val colNumber = rsmd.getColumnCount
         val header = for (i <- 1 to colNumber) yield rsmd.getColumnName(i)
         val resultArray = ArrayBuffer.empty[List[String]]
-        resultArray += header.toList
+        if (returnHeader) resultArray += header.toList
 
         while (result.next()) {
           val row = for (i <- 1 to colNumber) yield result.getString(i)
