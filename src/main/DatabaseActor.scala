@@ -263,8 +263,17 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
     QueryResult(resultToReturn._1,resultToReturn._2)
   }
 
-  def getUnfinishedActions : List[DatabaseActor.Action] = {
-    queryDataBase(s"select * from stuff_doer.actions where STATUS=${DatabaseActor.ACTION_STATUS_INITIAL}")
-    List.empty[DatabaseActor.Action]
+  def getUnfinishedActions : ArrayBuffer[DatabaseActor.Action] = {
+    val result = queryDataBase(s"select * from stuff_doer.actions where STATUS=${DatabaseActor.ACTION_STATUS_INITIAL}")
+    val actions = result match {
+      case QueryResult(Some(listOfRawActions), "") =>
+        listOfRawActions.map(action =>
+          DatabaseActor.Action(action(0), action(1), action(2), action(3).split(paramsDelimiter).toList, action(4).toInt))
+      case (QueryResult(None, msg)) =>
+        log.error(s"Got the following message: $msg")
+        ArrayBuffer.empty[DatabaseActor.Action]
+    }
+
+    actions
   }
 }
