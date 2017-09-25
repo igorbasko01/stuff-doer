@@ -27,7 +27,7 @@ object DatabaseActor {
   case object ReadyForWork
   case object QueryUnfinishedActions
 
-  case class Action(date: String, time: String, action: String, params: List[String], status: Int)
+  case class Action(date: String, time: String, act_type: String, params: List[String], status: Int)
   case class ActionKey(key: Int)
   case class QueryDB(query: String, update: Boolean = false)
   case class QueryResult(result: Option[ArrayBuffer[List[String]]], message: String)
@@ -60,7 +60,7 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
     val unfinishedActions = getUnfinishedActions
 
     // TODO: Handle the case when the action key is not in the map.
-    unfinishedActions.foreach(action => MasterActor.actionsToActors(action.action) ! action)
+    unfinishedActions.foreach(action => MasterActor.actionsToActors(action.act_type) ! action)
 
     //    val source: Source[Int, NotUsed] = Source(1 to 100)
 
@@ -211,7 +211,7 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
     * @return Returns an object of actions key.
     */
   def getActionKey(action: DatabaseActor.Action): DatabaseActor.ActionKey = {
-    val stringKey = action.date + action.time + action.action + action.params.mkString
+    val stringKey = action.date + action.time + action.act_type + action.params.mkString
     DatabaseActor.ActionKey(stringKey.hashCode)
   }
 
