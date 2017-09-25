@@ -1,14 +1,9 @@
 package main
 
-import java.nio.file.{Files, Paths}
-
-import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props}
+import akka.actor.{Actor, ActorLogging, PoisonPill, Props}
 import akka.stream._
-import akka.stream.scaladsl._
-import akka.util.ByteString
 
 import scala.util.{Failure, Success, Try}
-import scala.collection.JavaConverters._
 import java.sql.{Connection, DriverManager, ResultSet}
 
 import main.DatabaseActor.QueryResult
@@ -24,32 +19,22 @@ object DatabaseActor {
   val ACTION_COPY_FILE = "copy_file"
 
   case object Shutdown
-  case object ReadyForWork
   case object QueryUnfinishedActions
 
   case class Action(date: String, time: String, act_type: String, params: List[String], status: Int)
-  case class ActionKey(key: Int)
   case class QueryDB(query: String, update: Boolean = false)
   case class QueryResult(result: Option[ArrayBuffer[List[String]]], message: String)
 
-  def props(actionsFilesPath: String, actionsFilesPrfx: String): Props =
-    Props(new DatabaseActor(actionsFilesPath, actionsFilesPrfx))
+  def props(): Props = Props(new DatabaseActor)
 }
 
-class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends Actor with ActorLogging {
+class DatabaseActor extends Actor with ActorLogging {
 
   //TODO: Load the unfinished actions from the database. - Update the webserver actor to handle the new return type of
   // getUnfinishedActions.
-  //TODO: Remove the functions that are related to actions files.
-  //TODO: Remove the configurations that are no longer necessary.
 
-  // Line structure:
-  // date;time;action;param1,param2;status
-  val fieldsDelimiter = ";"
   val paramsDelimiter = ","
   var readyToAcceptWork = false
-
-  var actions = Map.empty[DatabaseActor.ActionKey, DatabaseActor.Action]
 
   val materializer = ActorMaterializer()(context)
 
@@ -60,7 +45,7 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
     val unfinishedActions = getUnfinishedActions
 
     // TODO: Handle the case when the action key is not in the map.
-    unfinishedActions.foreach(action => MasterActor.actionsToActors(action.act_type) ! action)
+//    unfinishedActions.foreach(action => MasterActor.actionsToActors(action.act_type) ! action)
     log.info("Started !")
   }
 
@@ -70,16 +55,10 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
 
   override def receive: Receive = {
     case DatabaseActor.Shutdown => controlledTermination()
-    case action: DatabaseActor.Action => actions ++= Map(getActionKey(action) -> action)
-    case DatabaseActor.QueryUnfinishedActions => queryUnfinishedActions(sender)
+    case DatabaseActor.QueryUnfinishedActions => sender ! getUnfinishedActions
     case DatabaseActor.QueryDB(query, update) => sender ! queryDataBase(query, update)
     case PoisonPill => controlledTermination()
-    case DatabaseActor.ReadyForWork =>
-      readyToAcceptWork = true
-      log.info("I'm ready for work ! Bring it on !!")
-    case somemessage =>
-      if (readyToAcceptWork) log.error(s"Got some unknown message: $somemessage")
-      else log.error("Still initializing ! Sorry...")
+    case somemessage => log.error(s"Got some unknown message: $somemessage")
   }
 
   def controlledTermination(): Unit = {
@@ -121,13 +100,6 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
     * @return true if enough parts.
     */
   def validateRawAction(parts: List[String]) : Boolean = if (parts.length == 5) true else false
-
-  /**
-    * Reply to the sender of the query with the actions that are not finished.
-    * @param replyTo The sender of the query.
-    */
-  def queryUnfinishedActions(replyTo: ActorRef) : Unit =
-    replyTo ! actions.values.filter(_.status != DatabaseActor.ACTION_STATUS_FINISHED).toList
 
   /**
     * This function executes a query against the database and returns the results as a one long string.
