@@ -88,12 +88,11 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
 
   /**
     * This function converts action string into an Action object.
-    * @param rawAction An action string that was read from an action file.
+    * @param parts An action string that was read from an action file.
     * @return The Action object or None.
     */
-  def convertToAction(rawAction: String) : Option[DatabaseActor.Action] = {
-    val parts = rawAction.split(fieldsDelimiter)
-    log.info(s"Got parts: ${parts.toList}")
+  def convertToAction(parts: List[String]) : Option[DatabaseActor.Action] = {
+    log.info(s"Got parts: $parts")
 
     validateRawAction(parts) match {
       case true =>
@@ -121,7 +120,7 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
     * @param parts An array of parts of the action.
     * @return true if enough parts.
     */
-  def validateRawAction(parts: Array[String]) : Boolean = if (parts.length == 5) true else false
+  def validateRawAction(parts: List[String]) : Boolean = if (parts.length == 5) true else false
 
   /**
     * Reply to the sender of the query with the actions that are not finished.
@@ -180,8 +179,7 @@ class DatabaseActor(actionsFilesPath: String, actionsFilesPrfx: String) extends 
     val result = queryDataBase(s"select * from stuff_doer.actions where STATUS=${DatabaseActor.ACTION_STATUS_INITIAL}")
     val actions = result match {
       case QueryResult(Some(listOfRawActions), "") =>
-        listOfRawActions.map(action =>
-          DatabaseActor.Action(action(0), action(1), action(2), action(3).split(paramsDelimiter).toList, action(4).toInt))
+        listOfRawActions.flatMap(convertToAction)
       case (QueryResult(None, msg)) =>
         log.error(s"Got the following message: $msg")
         ArrayBuffer.empty[DatabaseActor.Action]
