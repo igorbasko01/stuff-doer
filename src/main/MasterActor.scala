@@ -1,9 +1,15 @@
 package main
 
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props, Terminated}
+import akka.util.Timeout
 import utils.Configuration
 
+import scala.concurrent.duration._
+import akka.pattern.ask
+
+import scala.concurrent.Future
 import scala.collection.mutable.ArrayBuffer
+import scala.util.{Failure, Success}
 
 /**
   * Created by igor on 10/05/17.
@@ -33,6 +39,8 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
 
   override def preStart(): Unit = {
     log.info("Starting Master Actor...")
+
+    // TODO: Add code here to get and handle unfinished actions.
   }
 
   override def postStop(): Unit = {
@@ -54,5 +62,27 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
     // If webserver or database actor is not alive stop all the other actors and stop the application.
     if (!watched.contains(webServer) || !watched.contains(dataBase)) watched.foreach(_ ! PoisonPill)
     if (watched.isEmpty) context.stop(self)
+  }
+
+  def getUnfinishedActions : ArrayBuffer[DatabaseActor.Action] = {
+    implicit val timeout = Timeout(10.seconds)
+    import context.dispatcher
+    dataBase ! DatabaseActor.QueryUnfinishedActions
+
+    val response = (dataBase ? DatabaseActor.QueryUnfinishedActions).mapTo[ArrayBuffer[DatabaseActor.Action]]
+
+    //TODO: find a way to return the actions...
+    response.onComplete {
+      case Success(actions) => actions
+      case Failure(exp) =>
+        log.error(s"Problem while retrieving unfinished actions: ${exp.getMessage}")
+        exp.printStackTrace()
+        ArrayBuffer.empty[DatabaseActor.Action]
+    }
+  }
+
+  def handleUnfinishedActions(actions: ArrayBuffer[DatabaseActor.Action]) = {
+    // TODO: Handle the case when the action key is not in the map.
+    actions.foreach(action => MasterActor.actionsToActors(action.act_type) ! action)
   }
 }

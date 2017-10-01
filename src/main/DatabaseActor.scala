@@ -40,12 +40,6 @@ class DatabaseActor extends Actor with ActorLogging {
 
   override def preStart(): Unit = {
     log.info("Starting...")
-
-    // Get unfinished actions and handle them.
-    val unfinishedActions = getUnfinishedActions
-
-    // TODO: Handle the case when the action key is not in the map.
-//    unfinishedActions.foreach(action => MasterActor.actionsToActors(action.act_type) ! action)
     log.info("Started !")
   }
 
