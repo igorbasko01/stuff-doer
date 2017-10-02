@@ -74,7 +74,6 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
     val response = (dataBase ? DatabaseActor.QueryUnfinishedActions).mapTo[ArrayBuffer[DatabaseActor.Action]]
 
     response.onComplete {
-      // TODO: Handle the case when the action key is not in the map.
       case Success(actions) =>
         log.info("Got actions !")
         actions
