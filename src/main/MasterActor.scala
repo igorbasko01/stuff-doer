@@ -40,7 +40,9 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
   override def preStart(): Unit = {
     log.info("Starting Master Actor...")
 
-    // TODO: Add code here to get and handle unfinished actions.
+    // TODO: Add code here to get and handle unfinished actions. Maybe add a scheduler that will try and send
+    // fetch unfinished actions periodically.
+    handleUnfinishedActions()
   }
 
   override def postStop(): Unit = {
@@ -64,25 +66,23 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
     if (watched.isEmpty) context.stop(self)
   }
 
-  def getUnfinishedActions : ArrayBuffer[DatabaseActor.Action] = {
+  def handleUnfinishedActions() : Unit = {
     implicit val timeout = Timeout(10.seconds)
     import context.dispatcher
     dataBase ! DatabaseActor.QueryUnfinishedActions
 
     val response = (dataBase ? DatabaseActor.QueryUnfinishedActions).mapTo[ArrayBuffer[DatabaseActor.Action]]
 
-    //TODO: find a way to return the actions...
     response.onComplete {
-      case Success(actions) => actions
+      // TODO: Handle the case when the action key is not in the map.
+      case Success(actions) =>
+        log.info("Got actions !")
+        actions
+          .filter(action => MasterActor.actionsToActors.getOrElse(action.act_type, null) != null)
+          .foreach(action => MasterActor.actionsToActors(action.act_type) ! action)
       case Failure(exp) =>
         log.error(s"Problem while retrieving unfinished actions: ${exp.getMessage}")
         exp.printStackTrace()
-        ArrayBuffer.empty[DatabaseActor.Action]
     }
-  }
-
-  def handleUnfinishedActions(actions: ArrayBuffer[DatabaseActor.Action]) = {
-    // TODO: Handle the case when the action key is not in the map.
-    actions.foreach(action => MasterActor.actionsToActors(action.act_type) ! action)
   }
 }
