@@ -105,7 +105,7 @@ class DatabaseActor extends Actor with ActorLogging {
     val conn: Connection = DriverManager.getConnection("jdbc:h2:~/test", "sa", "")
 
     //"select * from INFORMATION_SCHEMA.TABLES"
-    log.info(s"Got the following query: $query")
+    log.info(s"Got the following query: $query, from: $sender")
 
     val resultTry =
     if (!update)
