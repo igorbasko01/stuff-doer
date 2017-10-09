@@ -68,8 +68,6 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
 
   def handleUnfinishedActions() : Unit = {
     implicit val timeout = Timeout(10.seconds)
-    import context.dispatcher
-    dataBase ! DatabaseActor.QueryUnfinishedActions
 
     val response = (dataBase ? DatabaseActor.QueryUnfinishedActions).mapTo[ArrayBuffer[DatabaseActor.Action]]
 
@@ -82,6 +80,6 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
       case Failure(exp) =>
         log.error(s"Problem while retrieving unfinished actions: ${exp.getMessage}")
         exp.printStackTrace()
-    }
+    }(context.dispatcher)
   }
 }
