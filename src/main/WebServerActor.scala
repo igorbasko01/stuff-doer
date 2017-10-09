@@ -51,6 +51,7 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
         }
       } ~
       path("copy_file") {
+        // TODO: Maybe instead of adding a path for each action. I should add a general action, that adds actions.
         parameters('src, 'dest) { (src, dest) =>
           val dateTimeObject = LocalDateTime.now()
           val date = dateTimeObject.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
