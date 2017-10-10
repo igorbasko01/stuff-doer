@@ -32,16 +32,19 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
   val watched = ArrayBuffer.empty[ActorRef]
 
   val dataBase = context.actorOf(DatabaseActor.props(), "main.DatabaseActor")
-  watched += dataBase
+  watchActor(dataBase)
 
   val webServer = context.actorOf(WebServerActor.props(config.hostname, config.portNum, dataBase),"main.WebServerActor")
-  watched += webServer
-
-  // Watch all the child actors.
-  watched.foreach(context.watch)
+  watchActor(webServer)
 
   override def preStart(): Unit = {
     log.info("Starting Master Actor...")
+
+    val fileActor = context.actorOf(FileActor.props, "main.FileActor")
+    watchActor(fileActor)
+
+    // Watch all the child actors.
+    watched.foreach(context.watch)
 
     // TODO: Add code here to get and handle unfinished actions. Maybe add a scheduler that will try and send
     // fetch unfinished actions periodically.
@@ -53,7 +56,7 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
   }
 
   override def receive: Receive = {
-    case RegisterAction(action, actor) => RegisterAction _
+    case MasterActor.RegisterAction(action, actor) => registerAction(action, actor)
     case Terminated(ref) =>
       watched -= ref
       log.info(s"Actor: ${ref.path} died.")
@@ -61,10 +64,21 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
     case someMessage => log.warning(s"Got the following message for some reason: $someMessage")
   }
 
-  def RegisterAction(action: String, actor: ActorRef) = {
+  /***
+    * Register an action to an actor.
+    * @param action The action the actor handles.
+    * @param actor The actor
+    */
+  def registerAction(action: String, actor: ActorRef): Unit = {
     log.info(s"Adding the following link between action and actor: $action -> $actor")
     actionsToActors += action -> actor
   }
+
+  /***
+    * Add an actor to the watch list.
+    * @param actor Actor to add.
+    */
+  def watchActor(actor: ActorRef) : Unit = if (!watched.contains(actor)) watched += actor
 
   /**
     * Terminate the actor safely if, no more actors to watch, or the webServer actor is stopped.
