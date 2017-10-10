@@ -6,6 +6,7 @@ import utils.Configuration
 
 import scala.concurrent.duration._
 import akka.pattern.ask
+import main.MasterActor.RegisterAction
 
 import scala.concurrent.Future
 import scala.collection.mutable.ArrayBuffer
@@ -16,15 +17,17 @@ import scala.util.{Failure, Success}
   */
 object MasterActor {
 
-  //TODO: Add an implementation to fill the map
-  // Maybe each actor will decide on the actions it handles and will reply to the master when it is
-  // up with the action it handles.
-  val actionsToActors = Map.empty[String, ActorRef]
+  case class RegisterAction(action: String, actor: ActorRef)
 
   def props(config: Configuration): Props = Props(new MasterActor(config))
 }
 
 class MasterActor(config: Configuration) extends Actor with ActorLogging {
+
+  //TODO: Add an implementation to fill the map
+  // Maybe each actor will decide on the actions it handles and will reply to the master when it is
+  // up with the action it handles.
+  var actionsToActors = Map.empty[String, ActorRef]
 
   val watched = ArrayBuffer.empty[ActorRef]
 
@@ -50,6 +53,7 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
   }
 
   override def receive: Receive = {
+    case RegisterAction(action, actor) => actionsToActors += action -> actor
     case Terminated(ref) =>
       watched -= ref
       log.info(s"Actor: ${ref.path} died.")
@@ -75,8 +79,8 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
       case Success(actions) =>
         log.info("Got actions !")
         actions
-          .filter(action => MasterActor.actionsToActors.getOrElse(action.act_type, null) != null)
-          .foreach(action => MasterActor.actionsToActors(action.act_type) ! action)
+          .filter(action => actionsToActors.getOrElse(action.act_type, null) != null)
+          .foreach(action => actionsToActors(action.act_type) ! action)
       case Failure(exp) =>
         log.error(s"Problem while retrieving unfinished actions: ${exp.getMessage}")
         exp.printStackTrace()
