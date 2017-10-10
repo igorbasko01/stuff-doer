@@ -12,6 +12,7 @@ object FileActor {
 class FileActor extends Actor with ActorLogging {
   override def preStart(): Unit = {
     log.info("Starting...")
+    context.parent ! MasterActor.RegisterAction("copy_file", self)
     log.info("Started.")
   }
 

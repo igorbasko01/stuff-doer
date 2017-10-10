@@ -53,12 +53,17 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
   }
 
   override def receive: Receive = {
-    case RegisterAction(action, actor) => actionsToActors += action -> actor
+    case RegisterAction(action, actor) => RegisterAction _
     case Terminated(ref) =>
       watched -= ref
       log.info(s"Actor: ${ref.path} died.")
       controlledTermination()
     case someMessage => log.warning(s"Got the following message for some reason: $someMessage")
+  }
+
+  def RegisterAction(action: String, actor: ActorRef) = {
+    log.info(s"Adding the following link between action and actor: $action -> $actor")
+    actionsToActors += action -> actor
   }
 
   /**
