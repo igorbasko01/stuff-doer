@@ -21,7 +21,12 @@ class FileActor extends Actor with ActorLogging {
   }
 
   override def receive = {
+    case action: DatabaseActor.Action => handleArrivedAction(action)
     case someMessage => log.warning(s"Got the following message for some reason: $someMessage, from: $sender")
+  }
+
+  def handleArrivedAction(action: DatabaseActor.Action) : Unit = {
+
   }
 }
 
