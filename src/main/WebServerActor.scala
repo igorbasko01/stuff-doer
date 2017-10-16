@@ -10,6 +10,8 @@ import akka.util.Timeout
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+import main.DatabaseActor.QueryResult
+
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
@@ -65,10 +67,14 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
       path("query") {
         parameters('text) { (text) =>
           implicit val timeout = Timeout(10.seconds)
-          val response = (databaseActor ? DatabaseActor.QueryDB(text)).mapTo[String]
+          val response = (databaseActor ? DatabaseActor.QueryDB(text)).mapTo[QueryResult]
 
           onSuccess(response) {
-            case res: String => complete(s"Result: \n$res")
+            case res: QueryResult =>
+              if (res.result.isDefined)
+                complete(s"Result: \n${res.result.get.map(_.mkString(",")).mkString("\n")}")
+              else
+                complete(s"Error: ${res.message}")
             case _ => complete("Got some Error....")
           }
         }
