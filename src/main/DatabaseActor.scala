@@ -21,6 +21,9 @@ object DatabaseActor {
   case object Shutdown
   case object QueryUnfinishedActions
 
+  //TODO: Add an action id, so it could be uniquely identified through out the whole application.
+  //TODO: Replace the date and time fields with one timestamp field.
+  //TODO: Add last updated field of type timestamp.
   case class Action(date: String, time: String, act_type: String, params: List[String], status: Int)
   case class QueryDB(query: String, update: Boolean = false)
   case class QueryResult(result: Option[ArrayBuffer[List[String]]], message: String)
