@@ -5,7 +5,6 @@ import akka.stream._
 
 import scala.util.{Failure, Success, Try}
 import java.sql.{Connection, DriverManager, ResultSet}
-
 import main.DatabaseActor.QueryResult
 
 import scala.collection.mutable.ArrayBuffer
@@ -16,6 +15,8 @@ import scala.collection.mutable.ArrayBuffer
 object DatabaseActor {
   val ACTION_STATUS_INITIAL = 0
   val ACTION_STATUS_FINISHED = 99
+  val SCHEMA_NAME = "stuff_doer"
+  val ACTIONS_TABLE_NAME = "actions"
   val ACTION_COPY_FILE = "copy_file"
 
   case object Shutdown
@@ -145,7 +146,8 @@ class DatabaseActor extends Actor with ActorLogging {
     * @return An array of unfinished actions.
     */
   def getUnfinishedActions : ArrayBuffer[DatabaseActor.Action] = {
-    val result = queryDataBase(s"select * from stuff_doer.actions where STATUS=${DatabaseActor.ACTION_STATUS_INITIAL}")
+    val result = queryDataBase(s"select * from ${DatabaseActor.SCHEMA_NAME}.${DatabaseActor.ACTIONS_TABLE_NAME} " +
+      s"where STATUS=${DatabaseActor.ACTION_STATUS_INITIAL}")
     val actions = result match {
       case QueryResult(Some(listOfRawActions), "") =>
         listOfRawActions.flatMap(convertToAction)
@@ -155,5 +157,34 @@ class DatabaseActor extends Actor with ActorLogging {
     }
 
     actions
+  }
+
+  /**
+    * Creates the actions table.
+    */
+  def createTheActionsTable() : Unit = {
+    val createTableStmt = s"CREATE TABLE ${DatabaseActor.SCHEMA_NAME}.${DatabaseActor.ACTIONS_TABLE_NAME} (" +
+      "ID INT UNIQUE, " +
+      "CREATED TIMESTAMP, " +
+      "TYPE VARCHAR(255), " +
+      "PARAMS LONGVARCHAR, " +
+      "STATUS INT" +
+      ")"
+
+    val result = queryDataBase(createTableStmt,update = true)
+
+    val message = result match {
+      case QueryResult(_, msg) => msg
+      case _ => "Some error occurred while creating the actions table."
+    }
+
+    log.info(message)
+  }
+
+  /**
+    * Delete the actions table.
+    */
+  def deleteTheActionsTable() : Unit = {
+
   }
 }
