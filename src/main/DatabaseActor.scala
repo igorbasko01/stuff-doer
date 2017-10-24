@@ -22,6 +22,7 @@ object DatabaseActor {
   case object Shutdown
   case object QueryUnfinishedActions
 
+  //TODO: Delete the extra temp tables that were created.
   //TODO: Add an action id, so it could be uniquely identified through out the whole application.
   //TODO: Replace the date and time fields with one timestamp field.
   //TODO: Add last updated field of type timestamp.
@@ -44,6 +45,14 @@ class DatabaseActor extends Actor with ActorLogging {
 
   override def preStart(): Unit = {
     log.info("Starting...")
+
+    val fullTableName = s"${DatabaseActor.SCHEMA_NAME}.${DatabaseActor.ACTIONS_TABLE_NAME}"
+    checkIfTableExists(fullTableName) match {
+      case true => log.info(s"Actions table: $fullTableName, exists.")
+      case false => log.warning(s"Actions table: $fullTableName, doesn't exists.")
+        createTheActionsTable()
+    }
+
     log.info("Started !")
   }
 
@@ -163,7 +172,9 @@ class DatabaseActor extends Actor with ActorLogging {
     * Creates the actions table.
     */
   def createTheActionsTable() : Unit = {
-    val createTableStmt = s"CREATE TABLE ${DatabaseActor.SCHEMA_NAME}.${DatabaseActor.ACTIONS_TABLE_NAME} (" +
+    val actionsFullTableName = s"${DatabaseActor.SCHEMA_NAME}.${DatabaseActor.ACTIONS_TABLE_NAME}"
+    log.info(s"Creating $actionsFullTableName...")
+    val createTableStmt = s"CREATE TABLE $actionsFullTableName (" +
       "ID INT UNIQUE, " +
       "CREATED TIMESTAMP, " +
       "TYPE VARCHAR(255), " +
@@ -174,7 +185,7 @@ class DatabaseActor extends Actor with ActorLogging {
     val result = queryDataBase(createTableStmt,update = true)
 
     val message = result match {
-      case QueryResult(_, msg) => msg
+      case QueryResult(_, msg) => s"$msg <The table was probably created...>"
       case _ => "Some error occurred while creating the actions table."
     }
 
@@ -182,9 +193,18 @@ class DatabaseActor extends Actor with ActorLogging {
   }
 
   /**
-    * Delete the actions table.
+    * Check if a table exists and return accordingly.
+    * @param name The full name of the table.
+    * @return If a table exists or no.
     */
-  def deleteTheActionsTable() : Unit = {
+  def checkIfTableExists(name: String) : Boolean = {
+    val query = s"SELECT * FROM $name limit 1"
 
+    val result = queryDataBase(query)
+
+    result match {
+      case QueryResult(Some(rows), msg) => true
+      case _ => false
+    }
   }
 }

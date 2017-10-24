@@ -95,6 +95,7 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
   override def preStart(): Unit = {
     log.info("Starting...")
     bindingFuture = Http(context.system).bindAndHandle(route, hostname, port)
+    // TODO: Display the host name and port when the webserver finished starting.
     log.info("Started !")
   }
 
