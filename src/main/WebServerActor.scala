@@ -82,10 +82,10 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
       path("update") {
         parameters('text) { (text) =>
           implicit val timeout = Timeout(10.seconds)
-          val response = (databaseActor ? DatabaseActor.QueryDB(text,update = true)).mapTo[String]
+          val response = (databaseActor ? DatabaseActor.QueryDB(text,update = true)).mapTo[QueryResult]
 
           onSuccess(response) {
-            case res: String => complete(s"Result: \n$res")
+            case res: QueryResult => complete(s"Result: \n${res.message}")
             case _ => complete("Got some Error....")
           }
         }
@@ -95,8 +95,8 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
   override def preStart(): Unit = {
     log.info("Starting...")
     bindingFuture = Http(context.system).bindAndHandle(route, hostname, port)
-    // TODO: Display the host name and port when the webserver finished starting.
     log.info("Started !")
+    log.info(s"Listening on $hostname:$port")
   }
 
   override def postStop(): Unit = {

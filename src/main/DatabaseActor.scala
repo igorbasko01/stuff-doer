@@ -63,7 +63,7 @@ class DatabaseActor extends Actor with ActorLogging {
   override def receive: Receive = {
     case DatabaseActor.Shutdown => controlledTermination()
     case DatabaseActor.QueryUnfinishedActions => sender ! getUnfinishedActions
-    case DatabaseActor.QueryDB(query, update) => sender ! queryDataBase(query, update)
+    case DatabaseActor.QueryDB(query, update) => sender ! queryDataBase(query, update = update)
     case PoisonPill => controlledTermination()
     case somemessage => log.error(s"Got some unknown message: $somemessage")
   }
@@ -120,11 +120,10 @@ class DatabaseActor extends Actor with ActorLogging {
     //"select * from INFORMATION_SCHEMA.TABLES"
     log.info(s"Got the following query: $query, from: $sender")
 
-    val resultTry =
-    if (!update)
-      Try(conn.createStatement().executeQuery(query))
-    else
-      Try(conn.createStatement().executeUpdate(query))
+    val resultTry = update match {
+      case false => Try(conn.createStatement().executeQuery(query))
+      case true => Try(conn.createStatement().executeUpdate(query))
+    }
 
     val resultToReturn = resultTry match {
       case Success(result: ResultSet) =>
