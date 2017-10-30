@@ -94,7 +94,6 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
 
     response.onComplete {
       case Success(actions) =>
-        log.info("Got actions !")
         // TODO: Update the status of the action in the database. To SENT or something.
         actions
           .filter(action => actionsToActors.getOrElse(action.act_type, null) != null)

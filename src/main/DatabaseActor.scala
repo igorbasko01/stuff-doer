@@ -5,7 +5,9 @@ import akka.stream._
 
 import scala.util.{Failure, Success, Try}
 import java.sql.{Connection, DriverManager, ResultSet}
+
 import main.DatabaseActor.QueryResult
+import org.joda.time.DateTime
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -22,11 +24,7 @@ object DatabaseActor {
   case object Shutdown
   case object QueryUnfinishedActions
 
-  //TODO: Delete the extra temp tables that were created.
-  //TODO: Add an action id, so it could be uniquely identified through out the whole application.
-  //TODO: Replace the date and time fields with one timestamp field.
-  //TODO: Add last updated field of type timestamp.
-  case class Action(date: String, time: String, act_type: String, params: List[String], status: Int)
+  case class Action(id: Int, created: DateTime, act_type: String, params: List[String], status: Int, lastUpdated: DateTime)
   case class QueryDB(query: String, update: Boolean = false)
   case class QueryResult(result: Option[ArrayBuffer[List[String]]], message: String)
 
@@ -72,6 +70,7 @@ class DatabaseActor extends Actor with ActorLogging {
     context.stop(self)
   }
 
+  // TODO: Fix convertToAction function to use the updated Action case class.
   /**
     * This function converts action string into an Action object.
     * @param parts An action string that was read from an action file.
@@ -178,7 +177,8 @@ class DatabaseActor extends Actor with ActorLogging {
       "CREATED TIMESTAMP, " +
       "TYPE VARCHAR(255), " +
       "PARAMS LONGVARCHAR, " +
-      "STATUS INT" +
+      "STATUS INT," +
+      "LASTUPDATED TIMESTAMP" +
       ")"
 
     val result = queryDataBase(createTableStmt,update = true)
