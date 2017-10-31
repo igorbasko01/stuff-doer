@@ -8,6 +8,7 @@ import java.sql.{Connection, DriverManager, ResultSet}
 
 import main.DatabaseActor.QueryResult
 import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormat
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -81,16 +82,19 @@ class DatabaseActor extends Actor with ActorLogging {
 
     validateRawAction(parts) match {
       case true =>
-        val params = parts(3).split(paramsDelimiter).toList
-        log.info(s"Params are: $params")
-        log.info(s"Status is: ${parts(4)}")
+        try {
+          val id = parts(0).toInt
+          val created = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'").parseDateTime(parts(1))
+          val act_type = parts(2)
+          val params = parts(3).split(paramsDelimiter).toList
+          val status = parts(4).toInt
+          val lastUpdated = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'").parseDateTime(parts(5))
 
-        Try(parts(4).toInt) match {
-          case Success(x) =>
-            log.info("toInt success")
-            Some(DatabaseActor.Action(parts(0),parts(1),parts(2),params,x))
-          case Failure(e) =>
-            log.info("toInt failure")
+          Some(DatabaseActor.Action(id, created, act_type, params, status, lastUpdated))
+
+        } catch {
+          case e: Exception =>
+            log.error(s"Couldn't convert the action: ${parts.mkString(",")} to case class.")
             None
         }
 
@@ -105,7 +109,7 @@ class DatabaseActor extends Actor with ActorLogging {
     * @param parts An array of parts of the action.
     * @return true if enough parts.
     */
-  def validateRawAction(parts: List[String]) : Boolean = if (parts.length == 5) true else false
+  def validateRawAction(parts: List[String]) : Boolean = if (parts.length == 6) true else false
 
   /**
     * This function executes a query against the database and returns the results as a one long string.
