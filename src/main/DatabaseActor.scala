@@ -59,6 +59,7 @@ class DatabaseActor extends Actor with ActorLogging {
     log.info("Stopping...")
   }
 
+  // TODO: Handle adding a new action.
   override def receive: Receive = {
     case DatabaseActor.Shutdown => controlledTermination()
     case DatabaseActor.QueryUnfinishedActions => sender ! getUnfinishedActions
@@ -71,7 +72,6 @@ class DatabaseActor extends Actor with ActorLogging {
     context.stop(self)
   }
 
-  // TODO: Fix convertToAction function to use the updated Action case class.
   /**
     * This function converts action string into an Action object.
     * @param parts An action string that was read from an action file.
