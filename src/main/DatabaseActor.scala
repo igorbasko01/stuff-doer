@@ -22,6 +22,8 @@ object DatabaseActor {
   val ACTIONS_TABLE_NAME = "actions"
   val ACTION_COPY_FILE = "copy_file"
 
+  val TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS"
+
   case object Shutdown
   case object QueryUnfinishedActions
 
@@ -84,11 +86,11 @@ class DatabaseActor extends Actor with ActorLogging {
       case true =>
         try {
           val id = parts(0).toInt
-          val created = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'").parseDateTime(parts(1))
+          val created = DateTimeFormat.forPattern(DatabaseActor.TIMESTAMP_FORMAT).parseDateTime(parts(1))
           val act_type = parts(2)
           val params = parts(3).split(paramsDelimiter).toList
           val status = parts(4).toInt
-          val lastUpdated = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'").parseDateTime(parts(5))
+          val lastUpdated = DateTimeFormat.forPattern(DatabaseActor.TIMESTAMP_FORMAT).parseDateTime(parts(5))
 
           Some(DatabaseActor.Action(id, created, act_type, params, status, lastUpdated))
 

@@ -52,17 +52,20 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
             complete(s"Error !")
         }
       } ~
-      path("copy_file") {
+      path("add_action") {
         // TODO: Maybe instead of adding a path for each action. I should add a general action, that adds actions.
         // TODO: FIX ! Create a new action using the new case class.
-        parameters('src, 'dest) { (src, dest) =>
+        // TODO: Create a way to get a unique id for the action from the database.
+        parameters('action, 'params) { (action, params) =>
           val dateTimeObject = LocalDateTime.now()
-          val date = dateTimeObject.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-          val time = dateTimeObject.format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+          val created = dateTimeObject.format(DateTimeFormatter.ofPattern(DatabaseActor.TIMESTAMP_FORMAT))
+          val lastUpdated = created
+          val newAction = DatabaseActor.Action()
+
 //          val newAction = DatabaseActor.Action(date,time,DatabaseActor.ACTION_COPY_FILE,List(src,dest),
 //            DatabaseActor.ACTION_STATUS_INITIAL)
 //          databaseActor ! newAction
-          complete(s"Adding copy action: to copy from $src to $dest")
+          complete(s"Adding the following action: $action->$params")
         }
       } ~
       path("query") {
