@@ -7,10 +7,9 @@ import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
 import main.DatabaseActor.QueryResult
+import org.joda.time.DateTime
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -57,14 +56,12 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
         // TODO: FIX ! Create a new action using the new case class.
         // TODO: Create a way to get a unique id for the action from the database.
         parameters('action, 'params) { (action, params) =>
-          val dateTimeObject = LocalDateTime.now()
-          val created = dateTimeObject.format(DateTimeFormatter.ofPattern(DatabaseActor.TIMESTAMP_FORMAT))
+          val created = DateTime.now()
           val lastUpdated = created
-          val newAction = DatabaseActor.Action()
+          val newAction = DatabaseActor.Action(None, created, action, params.split(DatabaseActor.PARAMS_DELIMITER),
+            DatabaseActor.ACTION_STATUS_INITIAL, lastUpdated)
+          databaseActor ! newAction
 
-//          val newAction = DatabaseActor.Action(date,time,DatabaseActor.ACTION_COPY_FILE,List(src,dest),
-//            DatabaseActor.ACTION_STATUS_INITIAL)
-//          databaseActor ! newAction
           complete(s"Adding the following action: $action->$params")
         }
       } ~

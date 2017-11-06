@@ -24,10 +24,12 @@ object DatabaseActor {
 
   val TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS"
 
+  val PARAMS_DELIMITER = ","
+
   case object Shutdown
   case object QueryUnfinishedActions
 
-  case class Action(id: Int, created: DateTime, act_type: String, params: List[String], status: Int, lastUpdated: DateTime)
+  case class Action(id: Option[Int], created: DateTime, act_type: String, params: Array[String], status: Int, lastUpdated: DateTime)
   case class QueryDB(query: String, update: Boolean = false)
   case class QueryResult(result: Option[ArrayBuffer[List[String]]], message: String)
 
@@ -39,7 +41,6 @@ class DatabaseActor extends Actor with ActorLogging {
   //TODO: Load the unfinished actions from the database. - Update the webserver actor to handle the new return type of
   // getUnfinishedActions.
 
-  val paramsDelimiter = ","
   var readyToAcceptWork = false
 
   val materializer = ActorMaterializer()(context)
@@ -88,11 +89,11 @@ class DatabaseActor extends Actor with ActorLogging {
           val id = parts(0).toInt
           val created = DateTimeFormat.forPattern(DatabaseActor.TIMESTAMP_FORMAT).parseDateTime(parts(1))
           val act_type = parts(2)
-          val params = parts(3).split(paramsDelimiter).toList
+          val params = parts(3).split(DatabaseActor.PARAMS_DELIMITER)
           val status = parts(4).toInt
           val lastUpdated = DateTimeFormat.forPattern(DatabaseActor.TIMESTAMP_FORMAT).parseDateTime(parts(5))
 
-          Some(DatabaseActor.Action(id, created, act_type, params, status, lastUpdated))
+          Some(DatabaseActor.Action(Some(id), created, act_type, params, status, lastUpdated))
 
         } catch {
           case e: Exception =>
