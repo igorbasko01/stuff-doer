@@ -52,9 +52,6 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
         }
       } ~
       path("add_action") {
-        // TODO: Maybe instead of adding a path for each action. I should add a general action, that adds actions.
-        // TODO: FIX ! Create a new action using the new case class.
-        // TODO: Create a way to get a unique id for the action from the database.
         parameters('action, 'params) { (action, params) =>
           val created = DateTime.now()
           val lastUpdated = created

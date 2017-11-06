@@ -67,6 +67,7 @@ class DatabaseActor extends Actor with ActorLogging {
     case DatabaseActor.Shutdown => controlledTermination()
     case DatabaseActor.QueryUnfinishedActions => sender ! getUnfinishedActions
     case DatabaseActor.QueryDB(query, update) => sender ! queryDataBase(query, update = update)
+    case newAction: DatabaseActor.Action => addNewAction(newAction)
     case PoisonPill => controlledTermination()
     case somemessage => log.error(s"Got some unknown message: $somemessage")
   }
@@ -212,5 +213,10 @@ class DatabaseActor extends Actor with ActorLogging {
       case QueryResult(Some(rows), msg) => true
       case _ => false
     }
+  }
+
+  // TODO: Add a new action to the database. If the id is None, give it a new Id and insert it into the database.
+  def addNewAction(newAction: DatabaseActor.Action) : Unit = {
+
   }
 }
