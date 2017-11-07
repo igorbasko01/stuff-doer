@@ -217,6 +217,16 @@ class DatabaseActor extends Actor with ActorLogging {
 
   // TODO: Add a new action to the database. If the id is None, give it a new Id and insert it into the database.
   def addNewAction(newAction: DatabaseActor.Action) : Unit = {
+    // Get a unique id for the action.
+    val result = queryDataBase(s"SELECT MAX(ID) FROM ${DatabaseActor.SCHEMA_NAME}.${DatabaseActor.ACTIONS_TABLE_NAME}")
+    val id = result match {
+      case QueryResult(Some(rows), msg) => rows.head.head.toInt + 1
+      case QueryResult(None, msg) =>
+        log.error(s"Failed to fetch a new id: $msg. \n For the following action: $newAction")
+        -1
+    }
 
+    // Insert the action into the database.
+    
   }
 }
