@@ -219,6 +219,8 @@ class DatabaseActor extends Actor with ActorLogging {
     * Add a new action to the table.
     * @param newAction The action to add. Ignores the provided id.
     */
+  //TODO: There is a bug here, when adding a new action when the table is empty, it will try to access an empty
+  // queryResult and could not convert the id to a number.
   def addNewAction(newAction: DatabaseActor.Action) : Unit = {
     val fullTableName = s"${DatabaseActor.SCHEMA_NAME}.${DatabaseActor.ACTIONS_TABLE_NAME}"
     // Get a unique id for the action.
