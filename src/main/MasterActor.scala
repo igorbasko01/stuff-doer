@@ -35,6 +35,9 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
   val webServer = context.actorOf(WebServerActor.props(config.hostname, config.portNum, dataBase),"main.WebServerActor")
   watchActor(webServer)
 
+  val httpClient = context.actorOf(HttpClient.props(), "main.HttpClient")
+  watchActor(httpClient)
+
   override def preStart(): Unit = {
     log.info("Starting Master Actor...")
 
