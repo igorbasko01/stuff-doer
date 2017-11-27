@@ -42,11 +42,11 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
       } ~
       path("unfinishedactions") {
         implicit val timeout = Timeout(10.seconds)
-        val response = (databaseActor ? DatabaseActor.QueryUnfinishedActions).mapTo[List[String]]
+        val response = (databaseActor ? DatabaseActor.QueryUnfinishedActions).mapTo[List[DatabaseActor.Action]]
 
         onSuccess(response) {
-          case res: List[String] =>
-            complete(s"Unfinished actions\n${res.mkString("\n")}")
+          case res: List[DatabaseActor.Action] =>
+            complete(s"Unfinished actions:\n${res.map(action => action.toString).mkString("\n")}\n<EOF>")
           case _ =>
             complete(s"Error !")
         }

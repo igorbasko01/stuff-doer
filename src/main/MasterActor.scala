@@ -93,7 +93,7 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
   def handleUnfinishedActions() : Unit = {
     implicit val timeout = Timeout(10.seconds)
 
-    val response = (dataBase ? DatabaseActor.QueryUnfinishedActions).mapTo[ArrayBuffer[DatabaseActor.Action]]
+    val response = (dataBase ? DatabaseActor.QueryUnfinishedActions).mapTo[List[DatabaseActor.Action]]
 
     response.onComplete {
       case Success(actions) =>

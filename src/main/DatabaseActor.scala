@@ -160,15 +160,15 @@ class DatabaseActor extends Actor with ActorLogging {
     * Queries the database and returns a list of unfinished actions.
     * @return An array of unfinished actions.
     */
-  def getUnfinishedActions : ArrayBuffer[DatabaseActor.Action] = {
+  def getUnfinishedActions : List[DatabaseActor.Action] = {
     val result = queryDataBase(s"select * from ${DatabaseActor.SCHEMA_NAME}.${DatabaseActor.ACTIONS_TABLE_NAME} " +
       s"where STATUS=${DatabaseActor.ACTION_STATUS_INITIAL}")
     val actions = result match {
       case QueryResult(Some(listOfRawActions), "") =>
-        listOfRawActions.flatMap(convertToAction)
+        listOfRawActions.flatMap(convertToAction).toList
       case (QueryResult(None, msg)) =>
         log.error(s"Got the following message: $msg")
-        ArrayBuffer.empty[DatabaseActor.Action]
+        List.empty[DatabaseActor.Action]
     }
 
     actions
