@@ -219,14 +219,12 @@ class DatabaseActor extends Actor with ActorLogging {
     * Add a new action to the table.
     * @param newAction The action to add. Ignores the provided id.
     */
-  //TODO: There is a bug here, when adding a new action when the table is empty, it will try to access an empty
-  // queryResult and could not convert the id to a number.
   def addNewAction(newAction: DatabaseActor.Action) : Unit = {
     val fullTableName = s"${DatabaseActor.SCHEMA_NAME}.${DatabaseActor.ACTIONS_TABLE_NAME}"
     // Get a unique id for the action.
     val result = queryDataBase(s"SELECT MAX(ID) FROM $fullTableName")
     val id = result match {
-      case QueryResult(Some(rows), msg) => rows(0)(0).toInt + 1
+      case QueryResult(Some(rows), msg) => Try(rows(0)(0).toInt).getOrElse(0) + 1
       case QueryResult(None, msg) =>
         log.error(s"Failed to fetch a new id: $msg. \n For the following action: $newAction")
         -1
@@ -234,14 +232,15 @@ class DatabaseActor extends Actor with ActorLogging {
 
     // Insert the action into the database.
     id match {
-      case x: Int if x > 0 => queryDataBase(s"INSERT INTO $fullTableName VALUES(" +
+      case x: Int if x > 0 => val result = queryDataBase(s"INSERT INTO $fullTableName VALUES(" +
         s"$id, " +
-        s"${newAction.created}, " +
-        s"${newAction.act_type}, " +
-        s"${newAction.params}, " +
+        s"'${newAction.created.toString(DatabaseActor.TIMESTAMP_FORMAT)}', " +
+        s"'${newAction.act_type}', " +
+        s"'${newAction.params.mkString(DatabaseActor.PARAMS_DELIMITER)}', " +
         s"${newAction.status}, " +
-        s"${newAction.lastUpdated}" +
-        s")")
+        s"'${newAction.lastUpdated.toString(DatabaseActor.TIMESTAMP_FORMAT)}'" +
+        s");",update = true)
+        log.info(result.message)
       case _ => log.error(s"Invalid action id, not going to add the following action: $newAction")
     }
   }
