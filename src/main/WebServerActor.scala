@@ -55,8 +55,8 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
         parameters('action, 'params) { (action, params) =>
           val created = DateTime.now()
           val lastUpdated = created
-          val newAction = DatabaseActor.Action(None, created, action, params.split(DatabaseActor.PARAMS_DELIMITER),
-            DatabaseActor.ACTION_STATUS_INITIAL, lastUpdated)
+          val newAction = DatabaseActor.Action(None, created, action,
+            params.split(DatabaseActor.PARAMS_DELIMITER).toList, DatabaseActor.ACTION_STATUS_INITIAL, lastUpdated)
           databaseActor ! newAction
 
           complete(s"Adding the following action: $action->$params")

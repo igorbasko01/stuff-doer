@@ -29,7 +29,7 @@ object DatabaseActor {
   case object Shutdown
   case object QueryUnfinishedActions
 
-  case class Action(id: Option[Int], created: DateTime, act_type: String, params: Array[String], status: Int, lastUpdated: DateTime)
+  case class Action(id: Option[Int], created: DateTime, act_type: String, params: List[String], status: Int, lastUpdated: DateTime)
   case class QueryDB(query: String, update: Boolean = false)
   case class QueryResult(result: Option[ArrayBuffer[List[String]]], message: String)
 
@@ -37,9 +37,6 @@ object DatabaseActor {
 }
 
 class DatabaseActor extends Actor with ActorLogging {
-
-  //TODO: Load the unfinished actions from the database. - Update the webserver actor to handle the new return type of
-  // getUnfinishedActions.
 
   var readyToAcceptWork = false
 
@@ -62,7 +59,6 @@ class DatabaseActor extends Actor with ActorLogging {
     log.info("Stopping...")
   }
 
-  // TODO: Handle adding a new action.
   override def receive: Receive = {
     case DatabaseActor.Shutdown => controlledTermination()
     case DatabaseActor.QueryUnfinishedActions => sender ! getUnfinishedActions
@@ -90,7 +86,7 @@ class DatabaseActor extends Actor with ActorLogging {
           val id = parts(0).toInt
           val created = DateTimeFormat.forPattern(DatabaseActor.TIMESTAMP_FORMAT).parseDateTime(parts(1))
           val act_type = parts(2)
-          val params = parts(3).split(DatabaseActor.PARAMS_DELIMITER)
+          val params = parts(3).split(DatabaseActor.PARAMS_DELIMITER).toList
           val status = parts(4).toInt
           val lastUpdated = DateTimeFormat.forPattern(DatabaseActor.TIMESTAMP_FORMAT).parseDateTime(parts(5))
 
