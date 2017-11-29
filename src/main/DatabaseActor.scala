@@ -17,9 +17,11 @@ import scala.collection.mutable.ArrayBuffer
   */
 object DatabaseActor {
   val ACTION_STATUS_INITIAL = 0
+  val ACTION_STATUS_SENT = 1
   val ACTION_STATUS_FINISHED = 99
   val SCHEMA_NAME = "stuff_doer"
   val ACTIONS_TABLE_NAME = "actions"
+  val ACTIONS_FULL_TABLE_NAME = s"$SCHEMA_NAME.$ACTIONS_TABLE_NAME"
   val ACTION_COPY_FILE = "copy_file"
 
   val TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS"
@@ -32,6 +34,7 @@ object DatabaseActor {
   case class Action(id: Option[Int], created: DateTime, act_type: String, params: List[String], status: Int, lastUpdated: DateTime)
   case class QueryDB(query: String, update: Boolean = false)
   case class QueryResult(result: Option[ArrayBuffer[List[String]]], message: String)
+  case class UpdateActionStatusRequest(actionId: Int, newStatus: Int, lastUpdated: DateTime)
 
   def props(): Props = Props(new DatabaseActor)
 }
@@ -45,7 +48,7 @@ class DatabaseActor extends Actor with ActorLogging {
   override def preStart(): Unit = {
     log.info("Starting...")
 
-    val fullTableName = s"${DatabaseActor.SCHEMA_NAME}.${DatabaseActor.ACTIONS_TABLE_NAME}"
+    val fullTableName = DatabaseActor.ACTIONS_FULL_TABLE_NAME
     checkIfTableExists(fullTableName) match {
       case true => log.info(s"Actions table: $fullTableName, exists.")
       case false => log.warning(s"Actions table: $fullTableName, doesn't exists.")
@@ -157,7 +160,7 @@ class DatabaseActor extends Actor with ActorLogging {
     * @return An array of unfinished actions.
     */
   def getUnfinishedActions : List[DatabaseActor.Action] = {
-    val result = queryDataBase(s"select * from ${DatabaseActor.SCHEMA_NAME}.${DatabaseActor.ACTIONS_TABLE_NAME} " +
+    val result = queryDataBase(s"select * from ${DatabaseActor.ACTIONS_FULL_TABLE_NAME} " +
       s"where STATUS=${DatabaseActor.ACTION_STATUS_INITIAL}")
     val actions = result match {
       case QueryResult(Some(listOfRawActions), "") =>
@@ -174,7 +177,7 @@ class DatabaseActor extends Actor with ActorLogging {
     * Creates the actions table.
     */
   def createTheActionsTable() : Unit = {
-    val actionsFullTableName = s"${DatabaseActor.SCHEMA_NAME}.${DatabaseActor.ACTIONS_TABLE_NAME}"
+    val actionsFullTableName = s"${DatabaseActor.ACTIONS_FULL_TABLE_NAME}"
     log.info(s"Creating $actionsFullTableName...")
     val createTableStmt = s"CREATE TABLE $actionsFullTableName (" +
       "ID INT UNIQUE, " +
@@ -216,7 +219,7 @@ class DatabaseActor extends Actor with ActorLogging {
     * @param newAction The action to add. Ignores the provided id.
     */
   def addNewAction(newAction: DatabaseActor.Action) : Unit = {
-    val fullTableName = s"${DatabaseActor.SCHEMA_NAME}.${DatabaseActor.ACTIONS_TABLE_NAME}"
+    val fullTableName = s"${DatabaseActor.ACTIONS_FULL_TABLE_NAME}"
     // Get a unique id for the action.
     val result = queryDataBase(s"SELECT MAX(ID) FROM $fullTableName")
     val id = result match {
@@ -239,5 +242,12 @@ class DatabaseActor extends Actor with ActorLogging {
         log.info(result.message)
       case _ => log.error(s"Invalid action id, not going to add the following action: $newAction")
     }
+  }
+
+  // TODO: Update the specific action in database. Add the last updated update.
+  def updateActionStatus(updateReq: DatabaseActor.UpdateActionStatusRequest) : Unit = {
+    val fullTableName = s"${DatabaseActor.ACTIONS_FULL_TABLE_NAME}"
+
+    val result = queryDataBase(s"")
   }
 }

@@ -100,7 +100,9 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
         // TODO: Update the status of the action in the database. To SENT or something.
         actions
           .filter(action => actionsToActors.getOrElse(action.act_type, null) != null)
-          .foreach(action => actionsToActors(action.act_type) ! action)
+          .foreach(action => {
+            actionsToActors(action.act_type) ! action
+          })
       case Failure(exp) =>
         log.error(s"Problem while retrieving unfinished actions: ${exp.getMessage}")
         exp.printStackTrace()
