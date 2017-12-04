@@ -9,6 +9,7 @@ import akka.pattern.ask
 
 import scala.collection.mutable.ArrayBuffer
 import scala.util.{Failure, Success}
+import org.joda.time.DateTime
 
 /**
   * Created by igor on 10/05/17.
@@ -99,9 +100,12 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
       case Success(actions) =>
         // TODO: Update the status of the action in the database. To SENT or something.
         actions
-          .filter(action => actionsToActors.getOrElse(action.act_type, null) != null)
+          .filter(action => actionsToActors.contains(action.act_type))
           .foreach(action => {
             actionsToActors(action.act_type) ! action
+
+            dataBase ! DatabaseActor.UpdateActionStatusRequest(action.id.get,DatabaseActor.ACTION_STATUS_SENT,
+              DateTime.now())
           })
       case Failure(exp) =>
         log.error(s"Problem while retrieving unfinished actions: ${exp.getMessage}")

@@ -67,6 +67,7 @@ class DatabaseActor extends Actor with ActorLogging {
     case DatabaseActor.QueryUnfinishedActions => sender ! getUnfinishedActions
     case DatabaseActor.QueryDB(query, update) => sender ! queryDataBase(query, update = update)
     case newAction: DatabaseActor.Action => addNewAction(newAction)
+    case updateReq: DatabaseActor.UpdateActionStatusRequest => updateActionStatus(updateReq)
     case PoisonPill => controlledTermination()
     case somemessage => log.error(s"Got some unknown message: $somemessage")
   }
@@ -244,10 +245,18 @@ class DatabaseActor extends Actor with ActorLogging {
     }
   }
 
-  // TODO: Update the specific action in database. Add the last updated update.
+  // TODO: Update the specific action in database. Add the last updated date.
+  /**
+    * A function that updates the status of the action.
+    * @param updateReq All the needed information for the update.
+    */
   def updateActionStatus(updateReq: DatabaseActor.UpdateActionStatusRequest) : Unit = {
     val fullTableName = s"${DatabaseActor.ACTIONS_FULL_TABLE_NAME}"
 
-    val result = queryDataBase(s"")
+    val result = queryDataBase(s"UPDATE $fullTableName " +
+      s"SET (STATUS, LASTUPDATED)=('${updateReq.newStatus}','${updateReq.lastUpdated}') " +
+      s"WHERE ID='${updateReq.actionId}'")
+
+    log.info(s"Update action result: ${result.message}")
   }
 }
