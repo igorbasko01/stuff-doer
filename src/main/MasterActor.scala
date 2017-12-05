@@ -1,6 +1,6 @@
 package main
 
-import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props, Terminated}
+import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, PoisonPill, Props, Terminated}
 import akka.util.Timeout
 import utils.Configuration
 
@@ -17,6 +17,7 @@ import org.joda.time.DateTime
 object MasterActor {
 
   case class RegisterAction(action: String, actor: ActorRef)
+  case object HandleUnfinishedActions
 
   def props(config: Configuration): Props = Props(new MasterActor(config))
 }
@@ -28,16 +29,18 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
   // up with the action it handles.
   var actionsToActors = Map.empty[String, ActorRef]
 
-  val watched = ArrayBuffer.empty[ActorRef]
+  private val watched = ArrayBuffer.empty[ActorRef]
 
-  val dataBase = context.actorOf(DatabaseActor.props(), "main.DatabaseActor")
+  private val dataBase = context.actorOf(DatabaseActor.props(), "main.DatabaseActor")
   watchActor(dataBase)
 
-  val webServer = context.actorOf(WebServerActor.props(config.hostname, config.portNum, dataBase),"main.WebServerActor")
+  private val webServer = context.actorOf(WebServerActor.props(config.hostname, config.portNum, dataBase),"main.WebServerActor")
   watchActor(webServer)
 
-  val httpClient = context.actorOf(HttpClient.props(), "main.HttpClient")
+  private val httpClient = context.actorOf(HttpClient.props(), "main.HttpClient")
   watchActor(httpClient)
+
+  private var unfinishedMsgsScheduler: Option[Cancellable] = None
 
   override def preStart(): Unit = {
     log.info("Starting Master Actor...")
@@ -48,17 +51,18 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
     // Watch all the child actors.
     watched.foreach(context.watch)
 
-    // TODO: Add code here to get and handle unfinished actions. Maybe add a scheduler that will try and send
-    // fetch unfinished actions periodically.
-    handleUnfinishedActions()
+    unfinishedMsgsScheduler = Some(context.system.scheduler.schedule(0.seconds, 10.seconds, self,
+      MasterActor.HandleUnfinishedActions)(context.dispatcher))
   }
 
   override def postStop(): Unit = {
     log.info("Stopping Master Actor...")
+    unfinishedMsgsScheduler.foreach(_.cancel())
   }
 
   override def receive: Receive = {
     case MasterActor.RegisterAction(action, actor) => registerAction(action, actor)
+    case MasterActor.HandleUnfinishedActions => handleUnfinishedActions()
     case Terminated(ref) =>
       watched -= ref
       log.info(s"Actor: ${ref.path} died.")
@@ -91,14 +95,16 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
     if (watched.isEmpty) context.stop(self)
   }
 
+  /**
+    * Get all the actions that are not started, send it to the relevant actors, and update them as sent actions.
+    */
   def handleUnfinishedActions() : Unit = {
-    implicit val timeout = Timeout(10.seconds)
+    implicit val timeout: Timeout = Timeout(10.seconds)
 
     val response = (dataBase ? DatabaseActor.QueryUnfinishedActions).mapTo[List[DatabaseActor.Action]]
 
     response.onComplete {
       case Success(actions) =>
-        // TODO: Update the status of the action in the database. To SENT or something.
         actions
           .filter(action => actionsToActors.contains(action.act_type))
           .foreach(action => {

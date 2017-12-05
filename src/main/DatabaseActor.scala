@@ -160,6 +160,8 @@ class DatabaseActor extends Actor with ActorLogging {
     * Queries the database and returns a list of unfinished actions.
     * @return An array of unfinished actions.
     */
+  // TODO: It returns only actions that are in the initial status and not in the "NOT finished" status.
+  // Should think how to handle all the unfinished actions.
   def getUnfinishedActions : List[DatabaseActor.Action] = {
     val result = queryDataBase(s"select * from ${DatabaseActor.ACTIONS_FULL_TABLE_NAME} " +
       s"where STATUS=${DatabaseActor.ACTION_STATUS_INITIAL}")
