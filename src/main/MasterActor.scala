@@ -45,7 +45,7 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
   override def preStart(): Unit = {
     log.info("Starting Master Actor...")
 
-    val fileActor = context.actorOf(FileActor.props, "main.FileActor")
+    val fileActor = context.actorOf(FileActor.props(dataBase), "main.FileActor")
     watchActor(fileActor)
 
     // Watch all the child actors.

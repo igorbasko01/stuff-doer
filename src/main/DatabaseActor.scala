@@ -18,6 +18,7 @@ import scala.collection.mutable.ArrayBuffer
 object DatabaseActor {
   val ACTION_STATUS_INITIAL = 0
   val ACTION_STATUS_SENT = 1
+  val ACTION_STATUS_RECEIEVED = 2
   val ACTION_STATUS_FINISHED = 99
   val SCHEMA_NAME = "stuff_doer"
   val ACTIONS_TABLE_NAME = "actions"
