@@ -23,7 +23,7 @@ class FileActor(databaseActor: ActorRef) extends Actor with ActorLogging {
     log.info("Stopped.")
   }
 
-  override def receive: Unit = {
+  override def receive: Receive = {
     case action: DatabaseActor.Action => handleArrivedAction(action)
     case someMessage => log.warning(s"Got the following message for some reason: $someMessage, from: $sender")
   }

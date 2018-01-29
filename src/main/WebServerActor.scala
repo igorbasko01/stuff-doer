@@ -87,6 +87,9 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
             case _ => complete("Got some Error....")
           }
         }
+      } ~
+      pathPrefix("html") {
+        getFromDirectory("resources/html")
       }
     }
 
