@@ -7,8 +7,9 @@ import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+
+import main.DatabaseActor.QueryResult
+import org.joda.time.DateTime
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -41,34 +42,37 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
       } ~
       path("unfinishedactions") {
         implicit val timeout = Timeout(10.seconds)
-        val response = (databaseActor ? DatabaseActor.QueryUnfinishedActions).mapTo[List[String]]
+        val response = (databaseActor ? DatabaseActor.QueryUnfinishedActions).mapTo[List[DatabaseActor.Action]]
 
         onSuccess(response) {
-          case res: List[String] =>
-            complete(s"Unfinished actions\n${res.mkString("\n")}")
+          case res: List[DatabaseActor.Action] =>
+            complete(s"Unfinished actions:\n${res.map(action => action.toString).mkString("\n")}\n<EOF>")
           case _ =>
             complete(s"Error !")
         }
       } ~
-      path("copy_file") {
-        // TODO: Maybe instead of adding a path for each action. I should add a general action, that adds actions.
-        parameters('src, 'dest) { (src, dest) =>
-          val dateTimeObject = LocalDateTime.now()
-          val date = dateTimeObject.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-          val time = dateTimeObject.format(DateTimeFormatter.ofPattern("HH:mm:ss"))
-          val newAction = DatabaseActor.Action(date,time,DatabaseActor.ACTION_COPY_FILE,List(src,dest),
-            DatabaseActor.ACTION_STATUS_INITIAL)
+      path("add_action") {
+        parameters('action, 'params) { (action, params) =>
+          val created = DateTime.now()
+          val lastUpdated = created
+          val newAction = DatabaseActor.Action(None, created, action,
+            params.split(DatabaseActor.PARAMS_DELIMITER).toList, DatabaseActor.ACTION_STATUS_INITIAL, lastUpdated)
           databaseActor ! newAction
-          complete(s"Adding copy action: to copy from $src to $dest")
+
+          complete(s"Adding the following action: $action->$params")
         }
       } ~
       path("query") {
         parameters('text) { (text) =>
           implicit val timeout = Timeout(10.seconds)
-          val response = (databaseActor ? DatabaseActor.QueryDB(text)).mapTo[String]
+          val response = (databaseActor ? DatabaseActor.QueryDB(text)).mapTo[QueryResult]
 
           onSuccess(response) {
-            case res: String => complete(s"Result: \n$res")
+            case res: QueryResult =>
+              if (res.result.isDefined)
+                complete(s"Result: \n${res.result.get.map(_.mkString(",")).mkString("\n")}")
+              else
+                complete(s"Error: ${res.message}")
             case _ => complete("Got some Error....")
           }
         }
@@ -76,13 +80,16 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
       path("update") {
         parameters('text) { (text) =>
           implicit val timeout = Timeout(10.seconds)
-          val response = (databaseActor ? DatabaseActor.QueryDB(text,update = true)).mapTo[String]
+          val response = (databaseActor ? DatabaseActor.QueryDB(text,update = true)).mapTo[QueryResult]
 
           onSuccess(response) {
-            case res: String => complete(s"Result: \n$res")
+            case res: QueryResult => complete(s"Result: \n${res.message}")
             case _ => complete("Got some Error....")
           }
         }
+      } ~
+      pathPrefix("html") {
+        getFromDirectory("resources/html")
       }
     }
 
@@ -90,6 +97,7 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
     log.info("Starting...")
     bindingFuture = Http(context.system).bindAndHandle(route, hostname, port)
     log.info("Started !")
+    log.info(s"Listening on $hostname:$port")
   }
 
   override def postStop(): Unit = {
