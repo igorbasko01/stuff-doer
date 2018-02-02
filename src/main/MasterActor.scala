@@ -19,6 +19,9 @@ object MasterActor {
   case class RegisterAction(action: String, actor: ActorRef)
   case object HandleUnfinishedActions
 
+  case object GetDBActor
+  case class DBActor(dbAct: ActorRef)
+
   def props(config: Configuration): Props = Props(new MasterActor(config))
 }
 
@@ -63,6 +66,7 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
   override def receive: Receive = {
     case MasterActor.RegisterAction(action, actor) => registerAction(action, actor)
     case MasterActor.HandleUnfinishedActions => handleUnfinishedActions()
+    case MasterActor.GetDBActor => sender ! MasterActor.DBActor(dataBase)
     case Terminated(ref) =>
       watched -= ref
       log.info(s"Actor: ${ref.path} died.")
