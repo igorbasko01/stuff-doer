@@ -51,8 +51,8 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
     // Watch all the child actors.
     watched.foreach(context.watch)
 
-    unfinishedMsgsScheduler = Some(context.system.scheduler.schedule(0.seconds, 10.seconds, self,
-      MasterActor.HandleUnfinishedActions)(context.dispatcher))
+//    unfinishedMsgsScheduler = Some(context.system.scheduler.schedule(0.seconds, 10.seconds, self,
+//      MasterActor.HandleUnfinishedActions)(context.dispatcher))
   }
 
   override def postStop(): Unit = {

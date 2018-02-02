@@ -1,3 +1,6 @@
+var timer;
+var timeEnd;
+
 // request permission on page load
 document.addEventListener('DOMContentLoaded', function () {
   if (Notification.permission !== "granted")
@@ -14,15 +17,29 @@ function notifyMe() {
     Notification.requestPermission();
   else {
     var notification = new Notification('Notification title', {
-      icon: 'http://cdn.sstatic.net/stackexchange/img/logos/so/so-icon.png',
-      body: "Hey there! You've been notified!",
+//      icon: 'http://cdn.sstatic.net/stackexchange/img/logos/so/so-icon.png',
+      body: "Timer Ended !",
     });
 
     notification.onclick = function () {
-      window.open("http://stackoverflow.com/a/13328397/1269037");      
+        window.location.href = 'http://localhost:9080/html/index.html';
+//      window.open("http://localhost:9080/html/index.html");
     };
-    
   }
 
 }
 
+function startTimer() {
+    timer = setInterval(timerEnds, 1000);
+    timeEnd = new Date().getTime() + (5 * 1000);
+}
+
+function timerEnds() {
+    var currentTime = new Date().getTime();
+    if (currentTime > timeEnd) {
+        notifyMe();
+        clearInterval(timer);
+    }
+
+    document.getElementById("time").innerHTML = (timeEnd - currentTime) / 1000;
+}
