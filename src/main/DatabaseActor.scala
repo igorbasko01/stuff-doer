@@ -33,8 +33,8 @@ object DatabaseActor {
   case object QueryUnfinishedActions
 
   case class Action(id: Option[Int], created: DateTime, act_type: String, params: List[String], status: Int, lastUpdated: DateTime)
-  case class QueryDB(query: String, update: Boolean = false)
-  case class QueryResult(result: Option[ArrayBuffer[List[String]]], message: String)
+  case class QueryDB(reqId: Int, query: String, update: Boolean = false)
+  case class QueryResult(reqId: Int, result: Option[ArrayBuffer[List[String]]], message: String)
   case class UpdateActionStatusRequest(actionId: Int, newStatus: Int, lastUpdated: DateTime)
 
   case class IsTableExists(tableName: String)
@@ -69,7 +69,7 @@ class DatabaseActor extends Actor with ActorLogging {
   override def receive: Receive = {
     case DatabaseActor.Shutdown => controlledTermination()
     case DatabaseActor.QueryUnfinishedActions => sender ! getUnfinishedActions
-    case DatabaseActor.QueryDB(query, update) => sender ! queryDataBase(query, update = update)
+    case DatabaseActor.QueryDB(reqId, query, update) => sender ! queryDataBase(reqId, query, update = update)
     case DatabaseActor.IsTableExists(name) => sender ! DatabaseActor.TableExistsResult(name, checkIfTableExists(name))
     case newAction: DatabaseActor.Action => addNewAction(newAction)
     case updateReq: DatabaseActor.UpdateActionStatusRequest => updateActionStatus(updateReq)
@@ -125,7 +125,7 @@ class DatabaseActor extends Actor with ActorLogging {
     * @param query The query to execute.
     * @return The result of the query as an array of fields and a relevant message.
     */
-  def queryDataBase(query: String, returnHeader: Boolean = false, update: Boolean = false) : QueryResult = {
+  def queryDataBase(reqId: Int, query: String, returnHeader: Boolean = false, update: Boolean = false) : QueryResult = {
     Class.forName("org.h2.Driver")
     val conn: Connection = DriverManager.getConnection("jdbc:h2:~/test", "sa", "")
 
@@ -158,7 +158,7 @@ class DatabaseActor extends Actor with ActorLogging {
 
     conn.close()
 
-    QueryResult(resultToReturn._1,resultToReturn._2)
+    QueryResult(reqId, resultToReturn._1,resultToReturn._2)
   }
 
   /**
@@ -168,12 +168,12 @@ class DatabaseActor extends Actor with ActorLogging {
   // TODO: It returns only actions that are in the initial status and not in the "NOT finished" status.
   // Should think how to handle all the unfinished actions.
   def getUnfinishedActions : List[DatabaseActor.Action] = {
-    val result = queryDataBase(s"select * from ${DatabaseActor.ACTIONS_FULL_TABLE_NAME} " +
+    val result = queryDataBase(0, s"select * from ${DatabaseActor.ACTIONS_FULL_TABLE_NAME} " +
       s"where STATUS=${DatabaseActor.ACTION_STATUS_INITIAL}")
     val actions = result match {
-      case QueryResult(Some(listOfRawActions), "") =>
+      case QueryResult(_, Some(listOfRawActions), "") =>
         listOfRawActions.flatMap(convertToAction).toList
-      case (QueryResult(None, msg)) =>
+      case (QueryResult(_, None, msg)) =>
         log.error(s"Got the following message: $msg")
         List.empty[DatabaseActor.Action]
     }
@@ -196,10 +196,10 @@ class DatabaseActor extends Actor with ActorLogging {
       "LASTUPDATED TIMESTAMP" +
       ")"
 
-    val result = queryDataBase(createTableStmt,update = true)
+    val result = queryDataBase(0,createTableStmt,update = true)
 
     val message = result match {
-      case QueryResult(_, msg) => s"$msg <The table was probably created...>"
+      case QueryResult(_, _, msg) => s"$msg <The table was probably created...>"
       case _ => "Some error occurred while creating the actions table."
     }
 
@@ -214,10 +214,10 @@ class DatabaseActor extends Actor with ActorLogging {
   def checkIfTableExists(name: String) : Boolean = {
     val query = s"SELECT * FROM $name limit 1"
 
-    val result = queryDataBase(query)
+    val result = queryDataBase(0, query)
 
     result match {
-      case QueryResult(Some(rows), msg) => true
+      case QueryResult(_, Some(rows), msg) => true
       case _ => false
     }
   }
@@ -229,17 +229,17 @@ class DatabaseActor extends Actor with ActorLogging {
   def addNewAction(newAction: DatabaseActor.Action) : Unit = {
     val fullTableName = s"${DatabaseActor.ACTIONS_FULL_TABLE_NAME}"
     // Get a unique id for the action.
-    val result = queryDataBase(s"SELECT MAX(ID) FROM $fullTableName")
+    val result = queryDataBase(0, s"SELECT MAX(ID) FROM $fullTableName")
     val id = result match {
-      case QueryResult(Some(rows), msg) => Try(rows(0)(0).toInt).getOrElse(0) + 1
-      case QueryResult(None, msg) =>
+      case QueryResult(_, Some(rows), msg) => Try(rows(0)(0).toInt).getOrElse(0) + 1
+      case QueryResult(_, None, msg) =>
         log.error(s"Failed to fetch a new id: $msg. \n For the following action: $newAction")
         -1
     }
 
     // Insert the action into the database.
     id match {
-      case x: Int if x > 0 => val result = queryDataBase(s"INSERT INTO $fullTableName VALUES(" +
+      case x: Int if x > 0 => val result = queryDataBase(0, s"INSERT INTO $fullTableName VALUES(" +
         s"$id, " +
         s"'${newAction.created.toString(DatabaseActor.TIMESTAMP_FORMAT)}', " +
         s"'${newAction.act_type}', " +
@@ -260,7 +260,7 @@ class DatabaseActor extends Actor with ActorLogging {
   def updateActionStatus(updateReq: DatabaseActor.UpdateActionStatusRequest) : Unit = {
     val fullTableName = s"${DatabaseActor.ACTIONS_FULL_TABLE_NAME}"
 
-    val result = queryDataBase(s"UPDATE $fullTableName " +
+    val result = queryDataBase(0, s"UPDATE $fullTableName " +
       s"SET (STATUS, LASTUPDATED)=('${updateReq.newStatus}','${updateReq.lastUpdated}') " +
       s"WHERE ID='${updateReq.actionId}'")
 

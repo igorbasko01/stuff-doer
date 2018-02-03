@@ -65,7 +65,7 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
       path("query") {
         parameters('text) { (text) =>
           implicit val timeout = Timeout(10.seconds)
-          val response = (databaseActor ? DatabaseActor.QueryDB(text)).mapTo[QueryResult]
+          val response = (databaseActor ? DatabaseActor.QueryDB(0,text)).mapTo[QueryResult]
 
           onSuccess(response) {
             case res: QueryResult =>
@@ -80,7 +80,7 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
       path("update") {
         parameters('text) { (text) =>
           implicit val timeout = Timeout(10.seconds)
-          val response = (databaseActor ? DatabaseActor.QueryDB(text,update = true)).mapTo[QueryResult]
+          val response = (databaseActor ? DatabaseActor.QueryDB(0,text,update = true)).mapTo[QueryResult]
 
           onSuccess(response) {
             case res: QueryResult => complete(s"Result: \n${res.message}")

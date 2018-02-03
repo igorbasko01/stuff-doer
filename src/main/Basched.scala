@@ -8,8 +8,6 @@ object Basched {
 
 class Basched extends Actor with ActorLogging {
 
-  //TODO: Don't use ask pattern, try to create a request/reply pattern with tell only.
-
   val TABLE_NAME_TASKS = "tasks"
   val TABLE_NAME_RECORDS = "records"
   val TABLE_NAME_PROJECTS = "projects"
@@ -21,6 +19,8 @@ class Basched extends Actor with ActorLogging {
 
   var db: ActorRef = _
 
+  var requests: Map[Int, ((DatabaseActor.QueryResult) => Unit)] = Map(0 -> ((_: DatabaseActor.QueryResult) => ()))
+
   override def preStart(): Unit = {
     log.info("Starting...")
     context.parent ! MasterActor.GetDBActor
@@ -31,11 +31,33 @@ class Basched extends Actor with ActorLogging {
       db = x
       tablesCreationStmts.foreach{case (name, _) => db ! DatabaseActor.IsTableExists(name)}
     case DatabaseActor.TableExistsResult(name, isExist) if !isExist => createTable(name)
+    case x: DatabaseActor.QueryResult => handleQueryResult(x)
     case unknown => log.warning(s"Got unhandled message: $unknown")
   }
 
-  def createTable(name: String): Unit = {
+  def handleQueryResult(result: DatabaseActor.QueryResult): Unit = {
+    requests(result.reqId)(result)
+    requests -= result.reqId
+  }
 
+  def createTable(name: String): Unit = {
+    log.info(s"Going to create table: $name")
+
+    addQueryRequest(db,
+      tablesCreationStmts(name), update = true,
+      (x: DatabaseActor.QueryResult) => {
+        log.info(s"Table creation result: ${x.message}")
+      }
+    )
+  }
+
+  def addQueryRequest(actorHandler: ActorRef,
+                      statement: String,
+                      update: Boolean,
+                      resultHandle: DatabaseActor.QueryResult => Unit): Unit = {
+    val reqId = requests.keySet.max+1
+    actorHandler ! DatabaseActor.QueryDB(reqId, statement, update)
+    requests ++= Map(reqId -> resultHandle)
   }
 
   private def createStmtTaskTable = s"CREATE TABLE $TABLE_NAME_TASKS (" +
@@ -52,11 +74,11 @@ class Basched extends Actor with ActorLogging {
     s"ID INT UNIQUE, " +
     s"TSKID INT, " +
     s"END TIMESTAMP," +
-    s"DURATION INT," +
+    s"DURATION INT" +
     s")"
 
   private def createStmtProjectsTable = s"CREATE TABLE $TABLE_NAME_PROJECTS (" +
     s"ID INT UNIQUE, " +
-    s"NAME VARCHAR(255)," +
+    s"NAME VARCHAR(255)" +
     s")"
 }
