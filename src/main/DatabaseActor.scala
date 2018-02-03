@@ -37,6 +37,9 @@ object DatabaseActor {
   case class QueryResult(result: Option[ArrayBuffer[List[String]]], message: String)
   case class UpdateActionStatusRequest(actionId: Int, newStatus: Int, lastUpdated: DateTime)
 
+  case class IsTableExists(tableName: String)
+  case class TableExistsResult(isExist: Boolean)
+
   def props(): Props = Props(new DatabaseActor)
 }
 
@@ -67,6 +70,7 @@ class DatabaseActor extends Actor with ActorLogging {
     case DatabaseActor.Shutdown => controlledTermination()
     case DatabaseActor.QueryUnfinishedActions => sender ! getUnfinishedActions
     case DatabaseActor.QueryDB(query, update) => sender ! queryDataBase(query, update = update)
+    case DatabaseActor.IsTableExists(name) => sender ! DatabaseActor.TableExistsResult(checkIfTableExists(name))
     case newAction: DatabaseActor.Action => addNewAction(newAction)
     case updateReq: DatabaseActor.UpdateActionStatusRequest => updateActionStatus(updateReq)
     case PoisonPill => controlledTermination()
