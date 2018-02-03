@@ -1,15 +1,14 @@
 package main
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import akka.pattern.ask
-
-import scala.util.{Success,Failure}
 
 object Basched {
   def props(): Props = Props(new Basched)
 }
 
 class Basched extends Actor with ActorLogging {
+
+  //TODO: Don't use ask pattern, try to create a request/reply pattern with tell only.
 
   val TABLE_NAME_TASKS = "tasks"
   val TABLE_NAME_RECORDS = "records"
@@ -34,16 +33,11 @@ class Basched extends Actor with ActorLogging {
       db ! DatabaseActor.IsTableExists(TABLE_NAME_TASKS)
       db ! DatabaseActor.IsTableExists(TABLE_NAME_RECORDS)
     case DatabaseActor.TableExistsResult(name, isExist) if !isExist => createTable(name)
-    case _ => log.warning(s"Got unhandled message: ${_}")
+    case unknown => log.warning(s"Got unhandled message: $unknown")
   }
 
   def createTable(name: String): Unit = {
-    val result = (db ? DatabaseActor.QueryDB(tablesCreationStmts(name), update = true)).mapTo[DatabaseActor.QueryResult]
 
-    result onComplete {
-      case Success(qRes) => log.info(s"Result of create table [$name]: ${qRes.message}")
-      case Failure(e) => log.error(s"Failed to create table [$name]: ${e.getMessage}")
-    }
   }
 
   private def createStmtTaskTable = s"CREATE TABLE $TABLE_NAME_TASKS (" +

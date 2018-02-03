@@ -43,6 +43,10 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
   private val httpClient = context.actorOf(HttpClient.props(), "main.HttpClient")
   watchActor(httpClient)
 
+  private val basched = context.actorOf(Basched.props(), "main.Basched")
+  watchActor(basched)
+
+
   private var unfinishedMsgsScheduler: Option[Cancellable] = None
 
   override def preStart(): Unit = {
