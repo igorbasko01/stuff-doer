@@ -30,8 +30,6 @@ class Basched extends Actor with ActorLogging {
     case MasterActor.DBActor(x) =>
       db = x
       tablesCreationStmts.foreach{case (name, _) => db ! DatabaseActor.IsTableExists(name)}
-      db ! DatabaseActor.IsTableExists(TABLE_NAME_TASKS)
-      db ! DatabaseActor.IsTableExists(TABLE_NAME_RECORDS)
     case DatabaseActor.TableExistsResult(name, isExist) if !isExist => createTable(name)
     case unknown => log.warning(s"Got unhandled message: $unknown")
   }
