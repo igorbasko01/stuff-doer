@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Basched - Add Tasks</title>
+
+    <script src="AddTask.js"></script>
+</head>
+<body>
+<form onsubmit="addTask(); return false;">
+    Project:
+    <select>
+        <option value="projid1">Project1</option>
+        <option value="projid2">Project2</option>
+    </select>
+    Name: <input type="text" name="task_name" maxlength="254">
+    Priority:
+    <select>
+        <option value="im">Immediate</option>
+        <option value="hi">High</option>
+        <option value="re">Regular</option>
+    </select>
+    <input type="submit" value="Add">
+</form>
+</body>
+</html>
