@@ -88,6 +88,9 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
           }
         }
       } ~
+      path("basched" / "allprojects") {
+        complete("proj1,proj2")
+      } ~
       pathPrefix("html") {
         getFromDirectory("resources/html")
       }
