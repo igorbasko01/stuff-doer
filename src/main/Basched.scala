@@ -1,12 +1,13 @@
 package main
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import utils.Configuration
 
 object Basched {
-  def props(): Props = Props(new Basched)
+  def props(config: Configuration): Props = Props(new Basched(config))
 }
 
-class Basched extends Actor with ActorLogging {
+class Basched(config: Configuration) extends Actor with ActorLogging {
 
   val TABLE_NAME_TASKS = "tasks"
   val TABLE_NAME_RECORDS = "records"
@@ -17,19 +18,20 @@ class Basched extends Actor with ActorLogging {
     TABLE_NAME_RECORDS -> createStmtRecordsTable,
     TABLE_NAME_PROJECTS -> createStmtProjectsTable)
 
-  var db: ActorRef = _
+  val db: ActorRef = context.parent
+  var webServer: ActorRef = _
 
   var requests: Map[Int, ((DatabaseActor.QueryResult) => Unit)] = Map(0 -> ((_: DatabaseActor.QueryResult) => ()))
 
   override def preStart(): Unit = {
     log.info("Starting...")
-    context.parent ! MasterActor.GetDBActor
+
+    tablesCreationStmts.foreach{case (name, _) => db ! DatabaseActor.IsTableExists(name)}
+
+    webServer = context.actorOf(WebServerActor.props(config.hostname, config.portNum, db), "WebServerActor")
   }
 
   override def receive: Receive = {
-    case MasterActor.DBActor(x) =>
-      db = x
-      tablesCreationStmts.foreach{case (name, _) => db ! DatabaseActor.IsTableExists(name)}
     case DatabaseActor.TableExistsResult(name, isExist) if !isExist => createTable(name)
     case x: DatabaseActor.QueryResult => handleQueryResult(x)
     case unknown => log.warning(s"Got unhandled message: $unknown")

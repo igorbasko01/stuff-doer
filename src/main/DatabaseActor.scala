@@ -9,6 +9,7 @@ import java.sql.{Connection, DriverManager, ResultSet}
 import main.DatabaseActor.QueryResult
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
+import utils.Configuration
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -40,10 +41,10 @@ object DatabaseActor {
   case class IsTableExists(tableName: String)
   case class TableExistsResult(tableName: String, isExist: Boolean)
 
-  def props(): Props = Props(new DatabaseActor)
+  def props(config: Configuration): Props = Props(new DatabaseActor(config))
 }
 
-class DatabaseActor extends Actor with ActorLogging {
+class DatabaseActor(config: Configuration) extends Actor with ActorLogging {
 
   var readyToAcceptWork = false
 
@@ -63,7 +64,7 @@ class DatabaseActor extends Actor with ActorLogging {
 
     log.info("Started !")
 
-    clients += context.actorOf(Basched.props(), "Basched")
+    clients += context.actorOf(Basched.props(config), "Basched")
   }
 
   override def postStop(): Unit = {
