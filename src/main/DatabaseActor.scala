@@ -1,6 +1,6 @@
 package main
 
-import akka.actor.{Actor, ActorLogging, PoisonPill, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props}
 import akka.stream._
 
 import scala.util.{Failure, Success, Try}
@@ -49,6 +49,8 @@ class DatabaseActor extends Actor with ActorLogging {
 
   val materializer = ActorMaterializer()(context)
 
+  val clients: ArrayBuffer[ActorRef] = ArrayBuffer.empty
+
   override def preStart(): Unit = {
     log.info("Starting...")
 
@@ -60,6 +62,8 @@ class DatabaseActor extends Actor with ActorLogging {
     }
 
     log.info("Started !")
+
+    clients += context.actorOf(Basched.props(), "Basched")
   }
 
   override def postStop(): Unit = {
