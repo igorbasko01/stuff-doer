@@ -16,7 +16,7 @@ object BaschedRequest {
 class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
 
   var replyTo: ActorRef = _
-  var handleReply: (DatabaseActor.QueryResult) => () = _
+  var handleReply: (DatabaseActor.QueryResult) => Unit = _
 
   override def receive: Receive = {
     case GetAllProjects => queryGetAllProjects()
