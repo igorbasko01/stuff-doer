@@ -8,7 +8,6 @@ import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import main.DatabaseActor.QueryResult
-import main.WebServerActor.SetRouter
 import org.joda.time.DateTime
 
 import scala.concurrent.Future
@@ -19,7 +18,6 @@ import scala.concurrent.duration._
   */
 object WebServerActor {
   case object Shutdown
-  case class SetRouter(router: ActorRef)
 
   // A recommended way of creating props for actors with parameters.
   def props(hostname: String, port: Int, databaseActor: ActorRef): Props =
@@ -31,8 +29,6 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
   implicit val materializer = ActorMaterializer()
 
   var bindingFuture: Future[ServerBinding] = _
-
-  var baschedRouter: ActorRef = _
 
   val route =
     get {
@@ -112,7 +108,6 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
   }
 
   override def receive: Receive = {
-    case SetRouter(x) => baschedRouter = x
     case WebServerActor.Shutdown => context.stop(self)
   }
 }
