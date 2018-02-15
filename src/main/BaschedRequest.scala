@@ -1,13 +1,13 @@
 package main
 
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props}
-import main.BaschedRequest.GetAllProjects
+import main.BaschedRequest.{ReplyAllProjects, RequestAllProjects}
 
 object BaschedRequest {
 
   sealed trait Message
-  case object GetAllProjects extends Message
-  case class SendAllProjects(projects: List[(String,String)]) extends Message
+  case object RequestAllProjects extends Message
+  case class ReplyAllProjects(projects: List[(String,String)]) extends Message
 
   def props(db: ActorRef): Props = Props(new BaschedRequest(db))
 
@@ -19,7 +19,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
   var handleReply: (DatabaseActor.QueryResult) => Unit = _
 
   override def receive: Receive = {
-    case GetAllProjects => queryGetAllProjects()
+    case RequestAllProjects => queryGetAllProjects()
     case r: DatabaseActor.QueryResult =>
       handleReply(r)
       self ! PoisonPill
@@ -32,7 +32,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
   }
 
   def replyGetAllProjects(r: DatabaseActor.QueryResult) : Unit = {
-    val replyMsg = r.result.flatMap(allRows => Some(allRows.map(row => row.head))).mkString(",")
-    replyTo ! replyMsg
+    val replyMsg = r.result.flatMap(allRows => Some(allRows.map(row => (row(0),row(1))))).get.toList
+    replyTo ! ReplyAllProjects(replyMsg)
   }
 }

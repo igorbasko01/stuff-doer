@@ -7,6 +7,7 @@ import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
+import main.BaschedRequest.ReplyAllProjects
 import main.DatabaseActor.QueryResult
 import org.joda.time.DateTime
 
@@ -86,12 +87,17 @@ class WebServerActor(hostname: String,
 
           onSuccess(response) {
             case res: QueryResult => complete(s"Result: \n${res.message}")
-            case _ => complete("Got some Error....")
+            case _ => complete("Got some Error...")
           }
         }
       } ~
       path("basched" / "allprojects") {
-        complete("proj1,proj2")
+        implicit val timeout: Timeout = Timeout(10.seconds)
+        val response = (requestsRouter ? BaschedRequest.RequestAllProjects).mapTo[ReplyAllProjects]
+        onSuccess(response) {
+          case res: ReplyAllProjects => complete(res.projects.map(p=>s"${p._1},${p._2}").mkString(";"))
+          case other => complete(s"Got some Error: $other")
+        }
       } ~
       pathPrefix("html") {
         getFromDirectory("resources/html")

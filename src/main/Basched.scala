@@ -17,7 +17,8 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
   val tablesCreationStmts = Map(
     TABLE_NAME_TASKS -> createStmtTaskTable,
     TABLE_NAME_RECORDS -> createStmtRecordsTable,
-    TABLE_NAME_PROJECTS -> createStmtProjectsTable)
+    TABLE_NAME_PROJECTS -> createStmtProjectsTable
+  )
 
   val db: ActorRef = context.parent
   var webServer: ActorRef = _
@@ -91,5 +92,7 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
   private def createStmtProjectsTable = s"CREATE TABLE $TABLE_NAME_PROJECTS (" +
     s"ID INT UNIQUE, " +
     s"NAME VARCHAR(255)" +
-    s")"
+    s")"+";"+insertDefaultProject()
+
+  private def insertDefaultProject() = s"INSERT INTO $TABLE_NAME_PROJECTS (ID, NAME) VALUES (1, \'DEFAULT\')"
 }
