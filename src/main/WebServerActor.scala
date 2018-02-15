@@ -20,11 +20,14 @@ object WebServerActor {
   case object Shutdown
 
   // A recommended way of creating props for actors with parameters.
-  def props(hostname: String, port: Int, databaseActor: ActorRef): Props =
-    Props(new WebServerActor(hostname,port,databaseActor))
+  def props(hostname: String, port: Int, databaseActor: ActorRef, requestsRouter: ActorRef): Props =
+    Props(new WebServerActor(hostname,port,databaseActor, requestsRouter))
 }
 
-class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) extends Actor with ActorLogging {
+class WebServerActor(hostname: String,
+                     port: Int,
+                     databaseActor: ActorRef,
+                     requestsRouter: ActorRef) extends Actor with ActorLogging {
 
   implicit val materializer = ActorMaterializer()
 
