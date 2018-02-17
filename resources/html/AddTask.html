@@ -10,9 +10,8 @@
 <body>
 <form onsubmit="addTask(); return false;">
     Project:
-    <select>
-        <option value="projid1">Project1</option>
-        <option value="projid2">Project2</option>
+    <select id="project">
+        <!-- jQuery adds the options dynamically. -->
     </select>
     Name: <input type="text" name="task_name" maxlength="254">
     Priority:
