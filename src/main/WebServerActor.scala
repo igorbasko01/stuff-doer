@@ -21,14 +21,13 @@ object WebServerActor {
   case object Shutdown
 
   // A recommended way of creating props for actors with parameters.
-  def props(hostname: String, port: Int, databaseActor: ActorRef, requestsRouter: ActorRef): Props =
-    Props(new WebServerActor(hostname,port,databaseActor, requestsRouter))
+  def props(hostname: String, port: Int, databaseActor: ActorRef): Props =
+    Props(new WebServerActor(hostname,port,databaseActor))
 }
 
 class WebServerActor(hostname: String,
                      port: Int,
-                     databaseActor: ActorRef,
-                     requestsRouter: ActorRef) extends Actor with ActorLogging {
+                     databaseActor: ActorRef) extends Actor with ActorLogging {
 
   implicit val materializer = ActorMaterializer()
 
@@ -93,7 +92,8 @@ class WebServerActor(hostname: String,
       } ~
       path("basched" / "allprojects") {
         implicit val timeout: Timeout = Timeout(10.seconds)
-        val response = (requestsRouter ? BaschedRequest.RequestAllProjects).mapTo[ReplyAllProjects]
+        val requestActor = context.actorOf(BaschedRequest.props(databaseActor))
+        val response = (requestActor ? BaschedRequest.RequestAllProjects).mapTo[ReplyAllProjects]
         onSuccess(response) {
           case res: ReplyAllProjects => complete(res.projects.map(p=>s"${p._1},${p._2}").mkString(";"))
           case other => complete(s"Got some Error: $other")

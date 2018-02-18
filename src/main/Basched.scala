@@ -1,7 +1,6 @@
 package main
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import akka.routing.{DefaultResizer, SmallestMailboxPool}
 import utils.Configuration
 
 object Basched {
@@ -22,11 +21,6 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
 
   val db: ActorRef = context.parent
   var webServer: ActorRef = _
-  private val resizer = DefaultResizer(lowerBound = 2, upperBound = 15)
-  private val requestsRouter = context.actorOf(
-    SmallestMailboxPool(5, Some(resizer)).props(BaschedRequest.props(db)),
-    "requestRouter"
-  )
 
   var requests: Map[Int, ((DatabaseActor.QueryResult) => Unit)] = Map(0 -> ((_: DatabaseActor.QueryResult) => ()))
 
@@ -36,7 +30,7 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
     tablesCreationStmts.foreach{case (name, _) => db ! DatabaseActor.IsTableExists(name)}
 
     webServer = context.actorOf(
-      WebServerActor.props(config.hostname, config.portNum, db, requestsRouter),
+      WebServerActor.props(config.hostname, config.portNum, db),
       "WebServerActor"
     )
   }
