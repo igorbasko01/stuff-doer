@@ -16,15 +16,18 @@ function addTask() {
     if (task_input.val().trim() != "") {
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function() {
-            //TODO: Handle error reply.
             if (this.readyState == 4 && this.status == 200) {
-                console.log(this.responseText);
                 $("#message").text("Task ["+task_input.val()+"] was added.");
+            } else {
+                $("#message").text("Could not add task, reason: " + this.status);
             }
         };
 
         // TODO: Send real info.
-        xhttp.open("POST", "http://localhost:9080/basched/addTask?prj=1&name=aaa&pri=im", true);
+        var projId = $("#project").val();
+        var projName = $("#task_name").val();
+        var projPri = $("#priority").val();
+        xhttp.open("POST", "http://localhost:9080/basched/addTask?prj="+projId+"&name="+projName+"&pri="+projPri, true);
         xhttp.send();
     } else {
         $("#message").text("The task name is empty.");
