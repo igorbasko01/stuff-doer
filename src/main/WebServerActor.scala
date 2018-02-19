@@ -102,7 +102,15 @@ class WebServerActor(hostname: String,
       pathPrefix("html") {
         getFromDirectory("resources/html")
       }
+    } ~
+  post {
+    path("basched" / "addTask") {
+      parameters('prj, 'name, 'pri) { (prj, name, priority) =>
+        //TODO: Reply meaningfully.
+        complete("hello")
+      }
     }
+  }
 
   override def preStart(): Unit = {
     log.info("Starting...")

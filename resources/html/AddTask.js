@@ -12,7 +12,24 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function addTask() {
-    console.log("Hello !");
+    var task_input = $("#task_name");
+    if (task_input.val().trim() != "") {
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+            //TODO: Handle error reply.
+            if (this.readyState == 4 && this.status == 200) {
+                console.log(this.responseText);
+                $("#message").text("Task ["+task_input.val()+"] was added.");
+            }
+        };
+
+        // TODO: Send real info.
+        xhttp.open("POST", "http://localhost:9080/basched/addTask?prj=1&name=aaa&pri=im", true);
+        xhttp.send();
+    } else {
+        $("#message").text("The task name is empty.");
+        task_input.val("");
+    }
 }
 
 /**
