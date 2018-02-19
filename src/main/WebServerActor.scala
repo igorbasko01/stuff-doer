@@ -4,6 +4,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.ask
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
@@ -33,6 +34,8 @@ class WebServerActor(hostname: String,
 
   var bindingFuture: Future[ServerBinding] = _
 
+  implicit val timeout: Timeout = Timeout(10.seconds)
+
   val route =
     get {
       pathSingleSlash {
@@ -43,7 +46,6 @@ class WebServerActor(hostname: String,
         complete(s"Shutting down...")
       } ~
       path("unfinishedactions") {
-        implicit val timeout = Timeout(10.seconds)
         val response = (databaseActor ? DatabaseActor.QueryUnfinishedActions).mapTo[List[DatabaseActor.Action]]
 
         onSuccess(response) {
@@ -66,7 +68,6 @@ class WebServerActor(hostname: String,
       } ~
       path("query") {
         parameters('text) { (text) =>
-          implicit val timeout = Timeout(10.seconds)
           val response = (databaseActor ? DatabaseActor.QueryDB(0,text)).mapTo[QueryResult]
 
           onSuccess(response) {
@@ -81,7 +82,6 @@ class WebServerActor(hostname: String,
       } ~
       path("update") {
         parameters('text) { (text) =>
-          implicit val timeout = Timeout(10.seconds)
           val response = (databaseActor ? DatabaseActor.QueryDB(0,text,update = true)).mapTo[QueryResult]
 
           onSuccess(response) {
@@ -91,7 +91,7 @@ class WebServerActor(hostname: String,
         }
       } ~
       path("basched" / "allprojects") {
-        implicit val timeout: Timeout = Timeout(10.seconds)
+
         val requestActor = context.actorOf(BaschedRequest.props(databaseActor))
         val response = (requestActor ? BaschedRequest.RequestAllProjects).mapTo[ReplyAllProjects]
         onSuccess(response) {
@@ -107,7 +107,7 @@ class WebServerActor(hostname: String,
     path("basched" / "addTask") {
       parameters('prj, 'name, 'pri) { (prj, name, priority) =>
         //TODO: Reply meaningfully.
-        complete("hello")
+        complete(StatusCodes.Conflict)
       }
     }
   }
