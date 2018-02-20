@@ -91,9 +91,7 @@ class WebServerActor(hostname: String,
         }
       } ~
       path("basched" / "allprojects") {
-        // TODO: Move the creation of and sending to the request actor, outside of the route.
-        val requestActor = context.actorOf(BaschedRequest.props(databaseActor))
-        val response = (requestActor ? BaschedRequest.RequestAllProjects).mapTo[ReplyAllProjects]
+        val response = sendRequest(BaschedRequest.RequestAllProjects).mapTo[ReplyAllProjects]
         onSuccess(response) {
           case res: ReplyAllProjects => complete(res.projects.map(p=>s"${p._1},${p._2}").mkString(";"))
           case other => complete(HttpResponse(StatusCodes.NotFound,Nil,
@@ -111,6 +109,11 @@ class WebServerActor(hostname: String,
         complete(StatusCodes.Conflict)
       }
     }
+  }
+
+  def sendRequest(request: BaschedRequest.Message) : Future[Any] = {
+    val requestActor = context.actorOf(BaschedRequest.props(databaseActor))
+    requestActor ? request
   }
 
   override def preStart(): Unit = {
