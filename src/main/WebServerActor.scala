@@ -111,6 +111,11 @@ class WebServerActor(hostname: String,
     }
   }
 
+  /**
+    * Creates a Request Actor and sends the request.
+    * @param request The message to handle.
+    * @return A future of the reply.
+    */
   def sendRequest(request: BaschedRequest.Message) : Future[Any] = {
     val requestActor = context.actorOf(BaschedRequest.props(databaseActor))
     requestActor ? request

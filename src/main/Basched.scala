@@ -67,7 +67,7 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
   }
 
   private def createStmtTaskTable = s"CREATE TABLE $TABLE_NAME_TASKS (" +
-    s"ID INT UNIQUE, " +
+    s"ID INT AUTO_INCREMENT, " +
     s"PRJID INT, " +
     s"NAME VARCHAR(255), " +
     s"START TIMESTAMP," +
