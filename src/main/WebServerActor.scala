@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.ask
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
-import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
@@ -91,12 +91,13 @@ class WebServerActor(hostname: String,
         }
       } ~
       path("basched" / "allprojects") {
-
+        // TODO: Move the creation of and sending to the request actor, outside of the route.
         val requestActor = context.actorOf(BaschedRequest.props(databaseActor))
         val response = (requestActor ? BaschedRequest.RequestAllProjects).mapTo[ReplyAllProjects]
         onSuccess(response) {
           case res: ReplyAllProjects => complete(res.projects.map(p=>s"${p._1},${p._2}").mkString(";"))
-          case other => complete(s"Got some Error: $other")
+          case other => complete(HttpResponse(StatusCodes.NotFound,Nil,
+            HttpEntity(ContentTypes.`text/plain(UTF-8)`,s"Could not get any projects: $other")))
         }
       } ~
       pathPrefix("html") {
