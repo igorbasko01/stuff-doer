@@ -2,16 +2,21 @@ package main
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import utils.Configuration
+import main.Basched._
 
 object Basched {
-  def props(config: Configuration): Props = Props(new Basched(config))
-}
-
-class Basched(config: Configuration) extends Actor with ActorLogging {
 
   val TABLE_NAME_TASKS = "tasks"
   val TABLE_NAME_RECORDS = "records"
   val TABLE_NAME_PROJECTS = "projects"
+
+  val PRIORITY = Map("im" -> 0, "hi" -> 1, "re" -> 2)
+  val STATUS = Map("READY" -> 0, "WINDOW_FINISHED" -> 1, "ON_HOLD" -> 2, "FINISHED" -> 3)
+
+  def props(config: Configuration): Props = Props(new Basched(config))
+}
+
+class Basched(config: Configuration) extends Actor with ActorLogging {
 
   val tablesCreationStmts = Map(
     TABLE_NAME_TASKS -> createStmtTaskTable,
@@ -69,8 +74,8 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
   private def createStmtTaskTable = s"CREATE TABLE $TABLE_NAME_TASKS (" +
     s"ID INT AUTO_INCREMENT, " +
     s"PRJID INT, " +
-    s"NAME VARCHAR(255), " +
-    s"START TIMESTAMP," +
+    s"NAME VARCHAR(255) UNIQUE, " +
+    s"START TIMESTAMP DEFAULT CURRENT_TIMESTAMP()," +
     s"PRIORITY INT," +
     s"STATUS INT," +
     s"POMODOROS INT" +

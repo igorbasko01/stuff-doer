@@ -16,6 +16,7 @@ function addTask() {
     if (task_input.val().trim() != "") {
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function() {
+            // TODO: Reply with a relevant message
             if (this.readyState == 4 && this.status == 200) {
                 $("#message").text("Task ["+task_input.val()+"] was added.");
             } else {
@@ -23,7 +24,6 @@ function addTask() {
             }
         };
 
-        // TODO: Send real info.
         var projId = $("#project").val();
         var projName = $("#task_name").val();
         var projPri = $("#priority").val();

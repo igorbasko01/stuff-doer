@@ -105,6 +105,7 @@ class WebServerActor(hostname: String,
   post {
     path("basched" / "addTask") {
       parameters('prj, 'name, 'pri) { (prj, name, priority) =>
+        val response = sendRequest(BaschedRequest.AddTask(prj.toInt,name,priority))
         //TODO: Reply meaningfully.
         complete(StatusCodes.Conflict)
       }
