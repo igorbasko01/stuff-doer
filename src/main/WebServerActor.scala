@@ -8,7 +8,7 @@ import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusC
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import main.BaschedRequest.ReplyAllProjects
+import main.BaschedRequest.{ReplyAddTask, ReplyAllProjects}
 import main.DatabaseActor.QueryResult
 import org.joda.time.DateTime
 
@@ -105,9 +105,13 @@ class WebServerActor(hostname: String,
   post {
     path("basched" / "addTask") {
       parameters('prj, 'name, 'pri) { (prj, name, priority) =>
-        val response = sendRequest(BaschedRequest.AddTask(prj.toInt,name,priority))
-        //TODO: Reply meaningfully.
-        complete(StatusCodes.Conflict)
+        val response = sendRequest(BaschedRequest.AddTask(prj.toInt,name,priority)).mapTo[ReplyAddTask]
+
+        onSuccess(response) {
+          case ReplyAddTask(BaschedRequest.TASK_ADDED) => complete(StatusCodes.Created)
+          case ReplyAddTask(BaschedRequest.TASK_DUPLICATE) => complete(StatusCodes.Conflict)
+          case _ => complete(StatusCodes.NotFound)
+        }
       }
     }
   }

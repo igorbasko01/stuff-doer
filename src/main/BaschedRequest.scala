@@ -2,6 +2,7 @@ package main
 
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props}
 import main.BaschedRequest.{AddTask, ReplyAddTask, ReplyAllProjects, RequestAllProjects}
+import main.DatabaseActor.QueryResult
 
 object BaschedRequest {
 
@@ -13,7 +14,7 @@ object BaschedRequest {
   val TASK_ADDED = 0
   val TASK_DUPLICATE = 1
   val TASK_ERROR = 2
-  case class ReplyAddTask(success: Int) extends Message
+  case class ReplyAddTask(response: Int) extends Message
 
   def props(db: ActorRef): Props = Props(new BaschedRequest(db))
 
@@ -52,8 +53,10 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
   }
 
   def replyAddTask(r: DatabaseActor.QueryResult) : Unit = {
-    log.info(r.message)
-    //TODO: Check the result from the DB before replying with a status.
-    replyTo ! ReplyAddTask(BaschedRequest.TASK_ADDED)
+    r match {
+      case QueryResult(_, _, _, 0) => replyTo ! ReplyAddTask(BaschedRequest.TASK_ADDED)
+      case QueryResult(_, _, _, 23505) => replyTo ! ReplyAddTask(BaschedRequest.TASK_DUPLICATE)
+      case _ => replyTo ! ReplyAddTask(BaschedRequest.TASK_ERROR)
+    }
   }
 }

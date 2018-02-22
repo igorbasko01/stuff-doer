@@ -16,11 +16,12 @@ function addTask() {
     if (task_input.val().trim() != "") {
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function() {
-            // TODO: Reply with a relevant message
-            if (this.readyState == 4 && this.status == 200) {
+            if (this.readyState == 4 && this.status == 201) {
                 $("#message").text("Task ["+task_input.val()+"] was added.");
+            } else if (this.readyState == 4 && this.status == 409) {
+                $("#message").text("Could not add task, reason: Task already exists");
             } else {
-                $("#message").text("Could not add task, reason: " + this.status);
+                $("#message").text("Could not add task, reason: Something is wrong !!!");
             }
         };
 

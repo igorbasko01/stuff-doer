@@ -7,6 +7,7 @@ import scala.util.{Failure, Success, Try}
 import java.sql.{Connection, DriverManager, ResultSet}
 
 import main.DatabaseActor.QueryResult
+import org.h2.jdbc.JdbcSQLException
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import utils.Configuration
@@ -35,7 +36,7 @@ object DatabaseActor {
 
   case class Action(id: Option[Int], created: DateTime, act_type: String, params: List[String], status: Int, lastUpdated: DateTime)
   case class QueryDB(reqId: Int, query: String, update: Boolean = false)
-  case class QueryResult(reqId: Int, result: Option[ArrayBuffer[List[String]]], message: String)
+  case class QueryResult(reqId: Int, result: Option[ArrayBuffer[List[String]]], message: String, errorCode: Int)
   case class UpdateActionStatusRequest(actionId: Int, newStatus: Int, lastUpdated: DateTime)
 
   case class IsTableExists(tableName: String)
@@ -142,12 +143,13 @@ class DatabaseActor(config: Configuration) extends Actor with ActorLogging {
       case true => Try(conn.createStatement().executeUpdate(query))
     }
 
+    val resultArray = ArrayBuffer.empty[List[String]]
+
     val resultToReturn = resultTry match {
       case Success(result: ResultSet) =>
         val rsmd = result.getMetaData
         val colNumber = rsmd.getColumnCount
         val header = for (i <- 1 to colNumber) yield rsmd.getColumnName(i)
-        val resultArray = ArrayBuffer.empty[List[String]]
         if (returnHeader) resultArray += header.toList
 
         while (result.next()) {
@@ -155,15 +157,15 @@ class DatabaseActor(config: Configuration) extends Actor with ActorLogging {
           resultArray += row.toList
         }
 
-        (Some(resultArray), "")
-      case Success(result: Int) => (None, s"Updated $result rows !")
-      case Success(result) => (None, s"Unexpected result: ${result.toString}")
-      case Failure(e) => (None, e.getMessage)
+        (Some(resultArray), "",0)
+      case Success(result: Int) => (Some(resultArray), s"Updated $result rows !",0)
+      case Success(result) => (Some(resultArray), s"Unexpected result: ${result.toString}",0)
+      case Failure(e) => (None, e.getMessage, e.asInstanceOf[JdbcSQLException].getErrorCode)
     }
 
     conn.close()
 
-    QueryResult(reqId, resultToReturn._1,resultToReturn._2)
+    QueryResult(reqId, resultToReturn._1,resultToReturn._2,resultToReturn._3)
   }
 
   /**
@@ -176,9 +178,9 @@ class DatabaseActor(config: Configuration) extends Actor with ActorLogging {
     val result = queryDataBase(0, s"select * from ${DatabaseActor.ACTIONS_FULL_TABLE_NAME} " +
       s"where STATUS=${DatabaseActor.ACTION_STATUS_INITIAL}")
     val actions = result match {
-      case QueryResult(_, Some(listOfRawActions), "") =>
+      case QueryResult(_, Some(listOfRawActions), "", _) =>
         listOfRawActions.flatMap(convertToAction).toList
-      case (QueryResult(_, None, msg)) =>
+      case (QueryResult(_, None, msg, _)) =>
         log.error(s"Got the following message: $msg")
         List.empty[DatabaseActor.Action]
     }
@@ -204,7 +206,7 @@ class DatabaseActor(config: Configuration) extends Actor with ActorLogging {
     val result = queryDataBase(0,createTableStmt,update = true)
 
     val message = result match {
-      case QueryResult(_, _, msg) => s"$msg <The table was probably created...>"
+      case QueryResult(_, _, msg, _) => s"$msg <The table was probably created...>"
       case _ => "Some error occurred while creating the actions table."
     }
 
@@ -222,7 +224,7 @@ class DatabaseActor(config: Configuration) extends Actor with ActorLogging {
     val result = queryDataBase(0, query)
 
     result match {
-      case QueryResult(_, Some(rows), msg) => true
+      case QueryResult(_, Some(rows), msg, _) => true
       case _ => false
     }
   }
@@ -236,8 +238,8 @@ class DatabaseActor(config: Configuration) extends Actor with ActorLogging {
     // Get a unique id for the action.
     val result = queryDataBase(0, s"SELECT MAX(ID) FROM $fullTableName")
     val id = result match {
-      case QueryResult(_, Some(rows), msg) => Try(rows(0)(0).toInt).getOrElse(0) + 1
-      case QueryResult(_, None, msg) =>
+      case QueryResult(_, Some(rows), msg, _) => Try(rows(0)(0).toInt).getOrElse(0) + 1
+      case QueryResult(_, None, msg, _) =>
         log.error(s"Failed to fetch a new id: $msg. \n For the following action: $newAction")
         -1
     }
