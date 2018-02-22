@@ -52,3 +52,7 @@ function handleProjectReply(response) {
 
     $("#project").append(projectOpts.join(""));
 }
+
+function gotoMainPage() {
+    window.location.href = 'http://localhost:9080/html/index.html';
+}
