@@ -4,10 +4,11 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.ask
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-
+import main.BaschedRequest.{ReplyAddTask, ReplyAllProjects}
 import main.DatabaseActor.QueryResult
 import org.joda.time.DateTime
 
@@ -25,11 +26,15 @@ object WebServerActor {
     Props(new WebServerActor(hostname,port,databaseActor))
 }
 
-class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) extends Actor with ActorLogging {
+class WebServerActor(hostname: String,
+                     port: Int,
+                     databaseActor: ActorRef) extends Actor with ActorLogging {
 
   implicit val materializer = ActorMaterializer()
 
   var bindingFuture: Future[ServerBinding] = _
+
+  implicit val timeout: Timeout = Timeout(10.seconds)
 
   val route =
     get {
@@ -41,7 +46,6 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
         complete(s"Shutting down...")
       } ~
       path("unfinishedactions") {
-        implicit val timeout = Timeout(10.seconds)
         val response = (databaseActor ? DatabaseActor.QueryUnfinishedActions).mapTo[List[DatabaseActor.Action]]
 
         onSuccess(response) {
@@ -64,7 +68,6 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
       } ~
       path("query") {
         parameters('text) { (text) =>
-          implicit val timeout = Timeout(10.seconds)
           val response = (databaseActor ? DatabaseActor.QueryDB(0,text)).mapTo[QueryResult]
 
           onSuccess(response) {
@@ -79,19 +82,49 @@ class WebServerActor(hostname: String, port: Int, databaseActor: ActorRef) exten
       } ~
       path("update") {
         parameters('text) { (text) =>
-          implicit val timeout = Timeout(10.seconds)
           val response = (databaseActor ? DatabaseActor.QueryDB(0,text,update = true)).mapTo[QueryResult]
 
           onSuccess(response) {
             case res: QueryResult => complete(s"Result: \n${res.message}")
-            case _ => complete("Got some Error....")
+            case _ => complete("Got some Error...")
           }
+        }
+      } ~
+      path("basched" / "allprojects") {
+        val response = sendRequest(BaschedRequest.RequestAllProjects).mapTo[ReplyAllProjects]
+        onSuccess(response) {
+          case res: ReplyAllProjects => complete(res.projects.map(p=>s"${p._1},${p._2}").mkString(";"))
+          case other => complete(HttpResponse(StatusCodes.NotFound,Nil,
+            HttpEntity(ContentTypes.`text/plain(UTF-8)`,s"Could not get any projects: $other")))
         }
       } ~
       pathPrefix("html") {
         getFromDirectory("resources/html")
       }
+    } ~
+  post {
+    path("basched" / "addTask") {
+      parameters('prj, 'name, 'pri) { (prj, name, priority) =>
+        val response = sendRequest(BaschedRequest.AddTask(prj.toInt,name,priority)).mapTo[ReplyAddTask]
+
+        onSuccess(response) {
+          case ReplyAddTask(BaschedRequest.TASK_ADDED) => complete(StatusCodes.Created)
+          case ReplyAddTask(BaschedRequest.TASK_DUPLICATE) => complete(StatusCodes.Conflict)
+          case _ => complete(StatusCodes.NotFound)
+        }
+      }
     }
+  }
+
+  /**
+    * Creates a Request Actor and sends the request.
+    * @param request The message to handle.
+    * @return A future of the reply.
+    */
+  def sendRequest(request: BaschedRequest.Message) : Future[Any] = {
+    val requestActor = context.actorOf(BaschedRequest.props(databaseActor))
+    requestActor ? request
+  }
 
   override def preStart(): Unit = {
     log.info("Starting...")

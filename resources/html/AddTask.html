@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Basched - Add Tasks</title>
+
+    <script src="jquery-3.3.1.min.js"></script>
+    <script src="AddTask.js"></script>
+</head>
+<body>
+<form onsubmit="addTask(); return false;">
+    Project:
+    <select id="project">
+        <!-- jQuery adds the options dynamically. -->
+    </select>
+    Name: <input id="task_name" type="text" name="task_name" maxlength="254">
+    Priority:
+    <select id="priority">
+        <option value="im">Immediate</option>
+        <option value="hi">High</option>
+        <option value="re">Regular</option>
+    </select>
+    <input type="submit" value="Add">
+</form>
+<p id="message" align="center"></p>
+<button onclick="gotoMainPage()">Main Page</button>
+</body>
+</html>

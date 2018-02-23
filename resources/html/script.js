@@ -43,3 +43,7 @@ function timerEnds() {
 
     document.getElementById("time").innerHTML = (timeEnd - currentTime) / 1000;
 }
+
+function gotoAddTaskPage() {
+    window.location.href = 'http://localhost:9080/html/AddTask.html';
+}

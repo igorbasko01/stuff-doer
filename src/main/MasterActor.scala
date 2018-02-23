@@ -19,9 +19,6 @@ object MasterActor {
   case class RegisterAction(action: String, actor: ActorRef)
   case object HandleUnfinishedActions
 
-  case object GetDBActor
-  case class DBActor(dbAct: ActorRef)
-
   def props(config: Configuration): Props = Props(new MasterActor(config))
 }
 
@@ -34,18 +31,11 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
 
   private val watched = ArrayBuffer.empty[ActorRef]
 
-  private val dataBase = context.actorOf(DatabaseActor.props(), "main.DatabaseActor")
+  private val dataBase = context.actorOf(DatabaseActor.props(config), "main.DatabaseActor")
   watchActor(dataBase)
-
-  private val webServer = context.actorOf(WebServerActor.props(config.hostname, config.portNum, dataBase),"main.WebServerActor")
-  watchActor(webServer)
 
   private val httpClient = context.actorOf(HttpClient.props(), "main.HttpClient")
   watchActor(httpClient)
-
-  private val basched = context.actorOf(Basched.props(), "main.Basched")
-  watchActor(basched)
-
 
   private var unfinishedMsgsScheduler: Option[Cancellable] = None
 
@@ -70,7 +60,6 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
   override def receive: Receive = {
     case MasterActor.RegisterAction(action, actor) => registerAction(action, actor)
     case MasterActor.HandleUnfinishedActions => handleUnfinishedActions()
-    case MasterActor.GetDBActor => sender ! MasterActor.DBActor(dataBase)
     case Terminated(ref) =>
       watched -= ref
       log.info(s"Actor: ${ref.path} died.")
@@ -99,7 +88,7 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
     */
   def controlledTermination(): Unit = {
     // If webserver or database actor is not alive stop all the other actors and stop the application.
-    if (!watched.contains(webServer) || !watched.contains(dataBase)) watched.foreach(_ ! PoisonPill)
+    if (!watched.contains(dataBase)) watched.foreach(_ ! PoisonPill)
     if (watched.isEmpty) context.stop(self)
   }
 

@@ -1,35 +1,46 @@
 package main
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import utils.Configuration
+import main.Basched._
 
 object Basched {
-  def props(): Props = Props(new Basched)
-}
-
-class Basched extends Actor with ActorLogging {
 
   val TABLE_NAME_TASKS = "tasks"
   val TABLE_NAME_RECORDS = "records"
   val TABLE_NAME_PROJECTS = "projects"
 
+  val PRIORITY = Map("im" -> 0, "hi" -> 1, "re" -> 2)
+  val STATUS = Map("READY" -> 0, "WINDOW_FINISHED" -> 1, "ON_HOLD" -> 2, "FINISHED" -> 3)
+
+  def props(config: Configuration): Props = Props(new Basched(config))
+}
+
+class Basched(config: Configuration) extends Actor with ActorLogging {
+
   val tablesCreationStmts = Map(
     TABLE_NAME_TASKS -> createStmtTaskTable,
     TABLE_NAME_RECORDS -> createStmtRecordsTable,
-    TABLE_NAME_PROJECTS -> createStmtProjectsTable)
+    TABLE_NAME_PROJECTS -> createStmtProjectsTable
+  )
 
-  var db: ActorRef = _
+  val db: ActorRef = context.parent
+  var webServer: ActorRef = _
 
   var requests: Map[Int, ((DatabaseActor.QueryResult) => Unit)] = Map(0 -> ((_: DatabaseActor.QueryResult) => ()))
 
   override def preStart(): Unit = {
     log.info("Starting...")
-    context.parent ! MasterActor.GetDBActor
+
+    tablesCreationStmts.foreach{case (name, _) => db ! DatabaseActor.IsTableExists(name)}
+
+    webServer = context.actorOf(
+      WebServerActor.props(config.hostname, config.portNum, db),
+      "WebServerActor"
+    )
   }
 
   override def receive: Receive = {
-    case MasterActor.DBActor(x) =>
-      db = x
-      tablesCreationStmts.foreach{case (name, _) => db ! DatabaseActor.IsTableExists(name)}
     case DatabaseActor.TableExistsResult(name, isExist) if !isExist => createTable(name)
     case x: DatabaseActor.QueryResult => handleQueryResult(x)
     case unknown => log.warning(s"Got unhandled message: $unknown")
@@ -61,10 +72,10 @@ class Basched extends Actor with ActorLogging {
   }
 
   private def createStmtTaskTable = s"CREATE TABLE $TABLE_NAME_TASKS (" +
-    s"ID INT UNIQUE, " +
+    s"ID INT AUTO_INCREMENT, " +
     s"PRJID INT, " +
-    s"NAME VARCHAR(255), " +
-    s"START TIMESTAMP," +
+    s"NAME VARCHAR(255) UNIQUE, " +
+    s"START TIMESTAMP DEFAULT CURRENT_TIMESTAMP()," +
     s"PRIORITY INT," +
     s"STATUS INT," +
     s"POMODOROS INT" +
@@ -80,5 +91,7 @@ class Basched extends Actor with ActorLogging {
   private def createStmtProjectsTable = s"CREATE TABLE $TABLE_NAME_PROJECTS (" +
     s"ID INT UNIQUE, " +
     s"NAME VARCHAR(255)" +
-    s")"
+    s")"+";"+insertDefaultProject()
+
+  private def insertDefaultProject() = s"INSERT INTO $TABLE_NAME_PROJECTS (ID, NAME) VALUES (1, \'DEFAULT\')"
 }
