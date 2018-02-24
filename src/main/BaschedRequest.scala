@@ -19,7 +19,7 @@ object BaschedRequest {
   case class ReplyAddTask(response: Int) extends Message
 
   case object RequestAllUnfinishedTasks extends Message
-  case class Task(id: Int, prjId: Int, name: String, startTimestamp: DateTime, priority: Int, status: Int, pomodoros: Int)
+  case class Task(id: Int, prjId: Int, name: String, startTimestamp: String, priority: Int, status: Int, pomodoros: Int)
   case class ReplyAllUnfinishedTasks(tasks: List[Task])
 
   def props(db: ActorRef): Props = Props(new BaschedRequest(db))
@@ -34,6 +34,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
   override def receive: Receive = {
     case RequestAllProjects => queryGetAllProjects()
     case addTask: AddTask => addNewTask(addTask)
+    case RequestAllUnfinishedTasks => queryAllUnfinishedTasks()
     case r: DatabaseActor.QueryResult =>
       handleReply(r)
       self ! PoisonPill
@@ -78,8 +79,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
   }
 
   def listToTask(taskAsList: List[String]) : Task = {
-    val format = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
     Task(taskAsList.head.toInt,taskAsList(1).toInt,taskAsList(2),
-      format.parseDateTime(taskAsList(3)),taskAsList(4).toInt,taskAsList(5).toInt,taskAsList(6).toInt)
+      taskAsList(3),taskAsList(4).toInt,taskAsList(5).toInt,taskAsList(6).toInt)
   }
 }

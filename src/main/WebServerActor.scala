@@ -4,13 +4,15 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.ask
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
-import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Directives
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import main.BaschedRequest.{ReplyAddTask, ReplyAllProjects}
+import main.BaschedRequest.{ReplyAddTask, ReplyAllProjects, ReplyAllUnfinishedTasks}
 import main.DatabaseActor.QueryResult
 import org.joda.time.DateTime
+import spray.json._
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -18,6 +20,13 @@ import scala.concurrent.duration._
 /**
   * Created by igor on 14/05/17.
   */
+final case class Tasks(tasks: List[BaschedRequest.Task])
+
+trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
+  implicit val taskFormat = jsonFormat7(BaschedRequest.Task)
+  implicit val tasksFormat = jsonFormat1(Tasks)
+}
+
 object WebServerActor {
   case object Shutdown
 
@@ -28,7 +37,7 @@ object WebServerActor {
 
 class WebServerActor(hostname: String,
                      port: Int,
-                     databaseActor: ActorRef) extends Actor with ActorLogging {
+                     databaseActor: ActorRef) extends Actor with ActorLogging with Directives with JsonSupport {
 
   implicit val materializer = ActorMaterializer()
 
@@ -96,6 +105,14 @@ class WebServerActor(hostname: String,
           case res: ReplyAllProjects => complete(res.projects.map(p=>s"${p._1},${p._2}").mkString(";"))
           case other => complete(HttpResponse(StatusCodes.NotFound,Nil,
             HttpEntity(ContentTypes.`text/plain(UTF-8)`,s"Could not get any projects: $other")))
+        }
+      } ~
+      path("basched" / "unfinishedtasks") {
+        val response = sendRequest(BaschedRequest.RequestAllUnfinishedTasks).mapTo[ReplyAllUnfinishedTasks]
+        onSuccess(response) {
+          case ReplyAllUnfinishedTasks(tasks) => complete(Tasks(tasks))
+          case other => complete(HttpResponse(StatusCodes.NotFound,Nil,
+            HttpEntity(ContentTypes.`text/plain(UTF-8)`,s"Could not get any tasks: $other")))
         }
       } ~
       pathPrefix("html") {
