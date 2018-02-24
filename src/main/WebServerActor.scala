@@ -21,10 +21,14 @@ import scala.concurrent.duration._
   * Created by igor on 14/05/17.
   */
 final case class Tasks(tasks: List[BaschedRequest.Task])
+final case class Projects(projects: List[BaschedRequest.Project])
 
 trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val taskFormat = jsonFormat7(BaschedRequest.Task)
   implicit val tasksFormat = jsonFormat1(Tasks)
+
+  implicit val projFormat = jsonFormat2(BaschedRequest.Project)
+  implicit val projsFormat = jsonFormat1(Projects)
 }
 
 object WebServerActor {
@@ -102,7 +106,7 @@ class WebServerActor(hostname: String,
       path("basched" / "allprojects") {
         val response = sendRequest(BaschedRequest.RequestAllProjects).mapTo[ReplyAllProjects]
         onSuccess(response) {
-          case res: ReplyAllProjects => complete(res.projects.map(p=>s"${p._1},${p._2}").mkString(";"))
+          case ReplyAllProjects(projs) => complete(Projects(projs))
           case other => complete(HttpResponse(StatusCodes.NotFound,Nil,
             HttpEntity(ContentTypes.`text/plain(UTF-8)`,s"Could not get any projects: $other")))
         }

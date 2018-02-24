@@ -3,14 +3,13 @@ package main
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props}
 import main.BaschedRequest._
 import main.DatabaseActor.QueryResult
-import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormat
 
 object BaschedRequest {
 
   sealed trait Message
   case object RequestAllProjects extends Message
-  case class ReplyAllProjects(projects: List[(String,String)]) extends Message
+  case class Project(id: Int, name: String)
+  case class ReplyAllProjects(projects: List[Project]) extends Message
 
   case class AddTask(prjId: Int, name: String, priority: String) extends Message
   val TASK_ADDED = 0
@@ -47,8 +46,12 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
   }
 
   def replyGetAllProjects(r: DatabaseActor.QueryResult) : Unit = {
-    val replyMsg = r.result.flatMap(allRows => Some(allRows.map(row => (row(0),row(1))))).get.toList
-    replyTo ! ReplyAllProjects(replyMsg)
+    val projects = r.result.get.map(listToProj).toList
+    replyTo ! ReplyAllProjects(projects)
+  }
+
+  def listToProj(projAsList: List[String]) : Project = {
+    Project(projAsList.head.toInt, projAsList(1))
   }
 
   def addNewTask(newTask: AddTask) : Unit = {
