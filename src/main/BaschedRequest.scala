@@ -3,6 +3,7 @@ package main
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props}
 import main.BaschedRequest._
 import main.DatabaseActor.QueryResult
+import org.joda.time.format.DateTimeFormat
 
 object BaschedRequest {
 
@@ -18,7 +19,8 @@ object BaschedRequest {
   case class ReplyAddTask(response: Int) extends Message
 
   case object RequestAllUnfinishedTasks extends Message
-  case class Task(id: Int, prjId: Int, name: String, startTimestamp: String, priority: Int, status: Int, pomodoros: Int)
+  case class Task(id: Int, prjId: Int, name: String, startTimestamp: String, priority: Int, status: Int,
+                  pomodoros: Int, current: Boolean)
   case class ReplyAllUnfinishedTasks(tasks: List[Task])
 
   def props(db: ActorRef): Props = Props(new BaschedRequest(db))
@@ -81,8 +83,30 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     replyTo ! ReplyAllUnfinishedTasks(tasks)
   }
 
+  /**
+    * Converts the result from the DB to a Task object.
+    * @param taskAsList Single row from the DB.
+    * @return Task object.
+    */
   def listToTask(taskAsList: List[String]) : Task = {
     Task(taskAsList.head.toInt,taskAsList(1).toInt,taskAsList(2),
-      taskAsList(3),taskAsList(4).toInt,taskAsList(5).toInt,taskAsList(6).toInt)
+      taskAsList(3),taskAsList(4).toInt,taskAsList(5).toInt,taskAsList(6).toInt, current = false)
+  }
+
+  def selectCurrentTask(tasks: List[Task]): List[Task] = {
+    val immTasks = tasks.filter(_.priority == Basched.PRIORITY("im"))
+    val immSelected = getImmPriorityTaskId(immTasks)
+  }
+
+  /**
+    * Get the Immediate priority task id with the latest creation time.
+    * @param tasks A list of immediate priority tasks.
+    * @return An id of the selected task.
+    */
+  def getImmPriorityTaskId(tasks: List[Task]) : Int = {
+    val formater = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSS")
+
+    val idsAndDate = tasks.map(task => (task.id, formater.parseDateTime(task.startTimestamp)))
+    idsAndDate.maxBy(_._2)._1
   }
 }
