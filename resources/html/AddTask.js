@@ -40,12 +40,11 @@ function addTask() {
 Parses the all projects reply and adds the projects to the project <select> element.
 */
 function handleProjectReply(response) {
-    var projects = response.split(";");
+    var projects = JSON.parse(response).projects;
     var projectOpts = [];
     for (var i = 0; i < projects.length; i++) {
-        var prj = projects[i].split(",");
-        var prjId = prj[0];
-        var prjName = prj[1];
+        var prjId = projects[i].id;
+        var prjName = projects[i].name;
         projectOpts.push("<option value=\""+prjId+"\">"+prjName+"</option>");
     }
     console.log(projectOpts);

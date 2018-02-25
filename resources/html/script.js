@@ -5,6 +5,17 @@ var timeEnd;
 document.addEventListener('DOMContentLoaded', function () {
   if (Notification.permission !== "granted")
     Notification.requestPermission();
+
+  // Get all unfinished tasks.
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+        handleTasksReply(this.responseText);
+    }
+  };
+
+  xhttp.open("GET", "http://localhost:9080/basched/unfinishedtasks", true);
+  xhttp.send();
 });
 
 function notifyMe() {
@@ -46,4 +57,16 @@ function timerEnds() {
 
 function gotoAddTaskPage() {
     window.location.href = 'http://localhost:9080/html/AddTask.html';
+}
+
+function handleTasksReply(response) {
+    var tasks = JSON.parse(response).tasks;
+    var tasksRows = [];
+    for (var i = 0; i < tasks.length; i++) {
+        var taskName = tasks[i].name;
+        tasksRows.push("<tr><td>"+taskName+"</td></tr>");
+    }
+
+    var some = $("#tasks_table");
+    some.append(tasksRows.join(""));
 }
