@@ -1,6 +1,8 @@
 var timer;
 var timeEnd;
 
+var priority = ["Immediate", "High", "Regular"];
+
 // request permission on page load
 document.addEventListener('DOMContentLoaded', function () {
   if (Notification.permission !== "granted")
@@ -64,7 +66,8 @@ function handleTasksReply(response) {
     var tasksRows = [];
     for (var i = 0; i < tasks.length; i++) {
         var taskName = tasks[i].name;
-        tasksRows.push("<tr><td>"+taskName+"</td></tr>");
+        var taskPri = priority[tasks[i].priority];
+        tasksRows.push("<tr><td>"+taskName+"</td><td>"+taskPri+"</td></tr>");
     }
 
     var some = $("#tasks_table");
