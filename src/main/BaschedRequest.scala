@@ -27,6 +27,13 @@ object BaschedRequest {
 
 }
 
+/**
+  * A single request actor, handles only one request, so each request should instantiate this actor.
+  * Will return the result of the request straight to the sender.
+  * It mainly contains the logic of the Basched app, and it is the main link between the DB actor and the
+  * Webserver actor.
+  * @param db A DB actor that the basched request will query.
+  */
 class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
 
   var replyTo: ActorRef = _
