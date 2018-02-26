@@ -80,7 +80,8 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
 
   def replyAllUnfinishedTasks(r: DatabaseActor.QueryResult): Unit = {
     val tasks = r.result.get.map(listToTask).toList
-    replyTo ! ReplyAllUnfinishedTasks(tasks)
+    val tasksWithSelected = selectCurrentTask(tasks)
+    replyTo ! ReplyAllUnfinishedTasks(tasksWithSelected)
   }
 
   /**
