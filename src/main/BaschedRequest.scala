@@ -103,11 +103,11 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     val (highTasks, regTasks) = otherTasks.partition(_.priority == Basched.PRIORITY("hi"))
 
     val selectedId = getImmPriorityTaskId(immTasks) match {
-      case id: Option[Int] => id
+      case Some(id) => Some(id)
       case None => getOtherPriorityTaskId(highTasks) match {
-        case id: Option[Int] => id
+        case Some(id) => Some(id)
         case None => getOtherPriorityTaskId(regTasks) match {
-          case id: Option[Int] => id
+          case Some(id) => Some(id)
           case None => None
         }
       }
@@ -132,7 +132,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
 
     val idsAndDate = tasks.map(task => (task.id, formater.parseDateTime(task.startTimestamp)))
 
-    if (idsAndDate.nonEmpty) Some(idsAndDate.maxBy(_._2)._1)
+    if (idsAndDate.nonEmpty) Some(idsAndDate.maxBy(_._2.getMillis)._1)
     else None
   }
 
