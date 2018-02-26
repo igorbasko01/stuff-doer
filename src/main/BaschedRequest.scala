@@ -93,9 +93,33 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
       taskAsList(3),taskAsList(4).toInt,taskAsList(5).toInt,taskAsList(6).toInt, current = false)
   }
 
+  /**
+    * Selects one task that should be currently worked on. Using different logic for different priorities.
+    * @param tasks A list of task
+    * @return The same list of tasks, but with one task has the property current as true.
+    */
   def selectCurrentTask(tasks: List[Task]): List[Task] = {
-    val immTasks = tasks.filter(_.priority == Basched.PRIORITY("im"))
-    val immSelected = getImmPriorityTaskId(immTasks)
+    val (immTasks, otherTasks) = tasks.partition(_.priority == Basched.PRIORITY("im"))
+    val (highTasks, regTasks) = otherTasks.partition(_.priority == Basched.PRIORITY("hi"))
+
+    val selectedId = getImmPriorityTaskId(immTasks) match {
+      case id: Option[Int] => id
+      case None => getOtherPriorityTaskId(highTasks) match {
+        case id: Option[Int] => id
+        case None => getOtherPriorityTaskId(regTasks) match {
+          case id: Option[Int] => id
+          case None => None
+        }
+      }
+    }
+
+    val tasksWithSelected = tasks.map(task => {
+      val isCurrentTask = if (selectedId.isDefined && selectedId.get == task.id) true else false
+
+      Task(task.id,task.prjId,task.name,task.startTimestamp,task.priority,task.status,task.pomodoros, isCurrentTask)
+    })
+
+    tasksWithSelected
   }
 
   /**
@@ -103,10 +127,22 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     * @param tasks A list of immediate priority tasks.
     * @return An id of the selected task.
     */
-  def getImmPriorityTaskId(tasks: List[Task]) : Int = {
+  def getImmPriorityTaskId(tasks: List[Task]) : Option[Int] = {
     val formater = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSS")
 
     val idsAndDate = tasks.map(task => (task.id, formater.parseDateTime(task.startTimestamp)))
-    idsAndDate.maxBy(_._2)._1
+
+    if (idsAndDate.nonEmpty) Some(idsAndDate.maxBy(_._2)._1)
+    else None
+  }
+
+  /**
+    * Get the task id where the logic of the priority is the lowest pomodoro count.
+    * @param tasks List of Tasks
+    * @return An id of the selected task.
+    */
+  def getOtherPriorityTaskId(tasks: List[Task]) : Option[Int] = {
+    if (tasks.nonEmpty) Some(tasks.minBy(_.pomodoros).id)
+    else None
   }
 }
