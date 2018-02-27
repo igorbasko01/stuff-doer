@@ -5,6 +5,10 @@ import main.BaschedRequest._
 import main.DatabaseActor.QueryResult
 import org.joda.time.format.DateTimeFormat
 
+/**
+  * A companion object for [[BaschedRequest]]. Contains all the messages that are handle by it and a props function
+  * to use when creating an actor of type [[BaschedRequest]].
+  */
 object BaschedRequest {
 
   sealed trait Message
@@ -23,6 +27,11 @@ object BaschedRequest {
                   pomodoros: Int, current: Boolean)
   case class ReplyAllUnfinishedTasks(tasks: List[Task])
 
+  /**
+    * Returns a [[Props]] object with instantiated [[BaschedRequest]] class.
+    * @param db The [[DatabaseActor]] that the queries will be sent to.
+    * @return Returns a [[Props]] object with instantiated [[BaschedRequest]] class.
+    */
   def props(db: ActorRef): Props = Props(new BaschedRequest(db))
 
 }
@@ -30,9 +39,9 @@ object BaschedRequest {
 /**
   * A single request actor, handles only one request, so each request should instantiate this actor.
   * Will return the result of the request straight to the sender.
-  * It mainly contains the logic of the Basched app, and it is the main link between the DB actor and the
-  * Webserver actor.
-  * @param db A DB actor that the basched request will query.
+  * It mainly contains the logic of the Basched app, and it is the main link between the [[DatabaseActor]] and the
+  * [[WebServerActor]].
+  * @param db A [[DatabaseActor]] that the basched request will query.
   */
 class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
 
@@ -92,9 +101,9 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
   }
 
   /**
-    * Converts the result from the DB to a Task object.
+    * Converts the result from the [[DatabaseActor]] to a [[Task]] object.
     * @param taskAsList Single row from the DB.
-    * @return Task object.
+    * @return [[Task]] object.
     */
   def listToTask(taskAsList: List[String]) : Task = {
     Task(taskAsList.head.toInt,taskAsList(1).toInt,taskAsList(2),
@@ -102,9 +111,9 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
   }
 
   /**
-    * Selects one task that should be currently worked on. Using different logic for different priorities.
-    * @param tasks A list of task
-    * @return The same list of tasks, but with one task has the property current as true.
+    * Selects one [[Task]] that should be currently worked on. Using different logic for different priorities.
+    * @param tasks A list of [[Task]]
+    * @return The same list of [[Task]]s, but with one [[Task]] that has the property [[Task.current]] as true.
     */
   def selectCurrentTask(tasks: List[Task]): List[Task] = {
     val (immTasks, otherTasks) = tasks.partition(_.priority == Basched.PRIORITY("im"))
@@ -131,9 +140,9 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
   }
 
   /**
-    * Get the Immediate priority task id with the latest creation time.
-    * @param tasks A list of immediate priority tasks.
-    * @return An id of the selected task.
+    * Get the [[Task.id]] of a [[Task]] with an Immediate [[Task.priority]] with the latest creation time.
+    * @param tasks A [[List]] of immediate [[Task.priority]] tasks.
+    * @return An [[Task.id]] of the selected [[Task]].
     */
   def getImmPriorityTaskId(tasks: List[Task]) : Option[Int] = {
     val formater = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSS")
@@ -145,9 +154,9 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
   }
 
   /**
-    * Get the task id where the logic of the priority is the lowest pomodoro count.
-    * @param tasks List of Tasks
-    * @return An id of the selected task.
+    * Get the [[Task.id]] where the logic of the [[Task.priority]] is the lowest [[Task.pomodoros]] count.
+    * @param tasks List of [[Task]]s
+    * @return An [[Task.id]] of the selected [[Task]].
     */
   def getOtherPriorityTaskId(tasks: List[Task]) : Option[Int] = {
     if (tasks.nonEmpty) Some(tasks.minBy(_.pomodoros).id)
