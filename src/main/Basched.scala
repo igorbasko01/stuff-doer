@@ -4,6 +4,10 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import utils.Configuration
 import main.Basched._
 
+/**
+  * A companion object for the [[Basched]] class.
+  * Contains some Constants and a props function to use when instantiating a [[Basched]] actor.
+  */
 object Basched {
 
   val TABLE_NAME_TASKS = "tasks"
@@ -13,9 +17,19 @@ object Basched {
   val PRIORITY = Map("im" -> 0, "hi" -> 1, "re" -> 2)
   val STATUS = Map("READY" -> 0, "WINDOW_FINISHED" -> 1, "ON_HOLD" -> 2, "FINISHED" -> 3)
 
+  /**
+    * Returns a [[Props]] object with an instantiated [[Basched]] class.
+    * @param config The configuration object of the application.
+    * @return A [[Props]] object with an instantiated [[Basched]] class.
+    */
   def props(config: Configuration): Props = Props(new Basched(config))
 }
 
+/**
+  * Responsible for initialising the Basched system.
+  * Creates the needed tables in the Data Base, and initialises them with some rows.
+  * @param config A configuration object to use in the underlying actors.
+  */
 class Basched(config: Configuration) extends Actor with ActorLogging {
 
   val tablesCreationStmts = Map(
@@ -26,7 +40,7 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
 
   val db: ActorRef = context.parent
   var webServer: ActorRef = _
-
+  
   var requests: Map[Int, ((DatabaseActor.QueryResult) => Unit)] = Map(0 -> ((_: DatabaseActor.QueryResult) => ()))
 
   override def preStart(): Unit = {
