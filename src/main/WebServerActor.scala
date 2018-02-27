@@ -24,7 +24,7 @@ final case class Tasks(tasks: List[BaschedRequest.Task])
 final case class Projects(projects: List[BaschedRequest.Project])
 
 trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
-  implicit val taskFormat = jsonFormat7(BaschedRequest.Task)
+  implicit val taskFormat = jsonFormat8(BaschedRequest.Task)
   implicit val tasksFormat = jsonFormat1(Tasks)
 
   implicit val projFormat = jsonFormat2(BaschedRequest.Project)
