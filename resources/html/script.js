@@ -64,13 +64,19 @@ function gotoAddTaskPage() {
 function handleTasksReply(response) {
     var tasks = JSON.parse(response).tasks;
     var tasksRows = [];
+    var currentTask = ""
     for (var i = 0; i < tasks.length; i++) {
-        //TODO: Separate the current task from all tasks, and display it in another object.
         var taskName = tasks[i].name;
         var taskPri = priority[tasks[i].priority];
-        tasksRows.push("<tr><td>"+taskName+"</td><td>"+taskPri+"</td></tr>");
+        var html = "<tr><td>"+taskName+"</td><td>"+taskPri+"</td></tr>"
+        if (tasks[i].current == true) {
+            currentTask = html;
+        } else {
+            tasksRows.push(html);
+        }
     }
 
-    var some = $("#tasks_table");
-    some.append(tasksRows.join(""));
+    var waitingTasks = $("#tasks_table");
+    waitingTasks.append(tasksRows.join(""));
+    $("#current_task").append(currentTask);
 }
