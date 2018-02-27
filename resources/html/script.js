@@ -65,6 +65,7 @@ function handleTasksReply(response) {
     var tasks = JSON.parse(response).tasks;
     var tasksRows = [];
     for (var i = 0; i < tasks.length; i++) {
+        //TODO: Separate the current task from all tasks, and display it in another object.
         var taskName = tasks[i].name;
         var taskPri = priority[tasks[i].priority];
         tasksRows.push("<tr><td>"+taskName+"</td><td>"+taskPri+"</td></tr>");
