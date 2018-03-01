@@ -96,10 +96,10 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
     s")"
 
   private def createStmtRecordsTable = s"CREATE TABLE $TABLE_NAME_RECORDS (" +
-    s"ID INT UNIQUE, " +
+    s"ID INT AUTO_INCREMENT, " +
     s"TSKID INT, " +
     s"END TIMESTAMP," +
-    s"DURATION INT" +
+    s"DURATION_MS INT" +
     s")"
 
   private def createStmtProjectsTable = s"CREATE TABLE $TABLE_NAME_PROJECTS (" +
