@@ -1,6 +1,9 @@
 var timer;
 var timeEnd;
 
+var intervalToUpdate_ms = 10 * 1000;
+var intervalEnd;
+
 var priority = ["Immediate", "High", "Regular"];
 
 // request permission on page load
@@ -46,7 +49,16 @@ function notifyMe() {
 
 function startTimer() {
     timer = setInterval(timerEnds, 1000);
-    timeEnd = new Date().getTime() + getRemainingTime();
+
+    var currentTime = new Date().getTime();
+    timeEnd = currentTime + getRemainingTime();
+
+    resetCommitInterval(currentTime);
+}
+
+// Sets when the commit interval should happen.
+function resetCommitInterval(currentTime) {
+    intervalEnd = currentTime + intervalToUpdate_ms;
 }
 
 // Checks if the timer ended. If ended notifies the user and stops the interval.
@@ -56,11 +68,30 @@ function timerEnds() {
         notifyMe();
         clearInterval(timer);
         timeEnd = currentTime;
+        commitRecord();
     }
+
+    handleCommitInterval();
 
     displayTime(timeEnd - currentTime);
 }
 
+// Checks if an interval passed and commits the work to the server.
+function handleCommitInterval() {
+    var currentTime = new Date().getTime();
+    if (currentTime > intervalEnd) {
+        commitRecord();
+        resetCommitInterval(currentTime);
+    }
+}
+
+// It means that it adds a row to the RECORDS table.
+function commitRecord() {
+    console.log("Record Committed !")
+
+}
+
+// Display the remaining pomodoro time in a pretty way :)
 function displayTime(timeToDisplay) {
     var minutesRemaining = Math.floor(timeToDisplay / 1000 / 60);
     var secondsRemaining = Math.floor((timeToDisplay / 1000) - (minutesRemaining * 60));
