@@ -80,3 +80,9 @@ function handleTasksReply(response) {
     waitingTasks.append(tasksRows.join(""));
     $("#current_task").append(currentTask);
 }
+
+// Returns the amount of time in ms remaining in the pomodoro of the current task.
+//TODO: Extract the remaining time from the task itself.
+function getRemainingTime() {
+    return 24 * 60 * 1000;
+}
