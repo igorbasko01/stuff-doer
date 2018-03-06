@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   };
 
+  displayTime(getRemainingTime());
+
   xhttp.open("GET", "http://localhost:9080/basched/unfinishedtasks", true);
   xhttp.send();
 });
@@ -44,17 +46,29 @@ function notifyMe() {
 
 function startTimer() {
     timer = setInterval(timerEnds, 1000);
-    timeEnd = new Date().getTime() + (5 * 1000);
+    timeEnd = new Date().getTime() + getRemainingTime();
 }
 
+// Checks if the timer ended. If ended notifies the user and stops the interval.
 function timerEnds() {
     var currentTime = new Date().getTime();
     if (currentTime > timeEnd) {
         notifyMe();
         clearInterval(timer);
+        timeEnd = currentTime;
     }
 
-    document.getElementById("time").innerHTML = (timeEnd - currentTime) / 1000;
+    displayTime(timeEnd - currentTime);
+}
+
+function displayTime(timeToDisplay) {
+    var minutesRemaining = Math.floor(timeToDisplay / 1000 / 60);
+    var secondsRemaining = Math.floor((timeToDisplay / 1000) - (minutesRemaining * 60));
+
+    var mintsToDisp = (minutesRemaining < 10) ? "0" + minutesRemaining : minutesRemaining;
+    var scndsToDisp = (secondsRemaining < 10) ? "0" + secondsRemaining : secondsRemaining;
+
+    $("#time").text(mintsToDisp + ":" + scndsToDisp);
 }
 
 function gotoAddTaskPage() {
@@ -84,5 +98,5 @@ function handleTasksReply(response) {
 // Returns the amount of time in ms remaining in the pomodoro of the current task.
 //TODO: Extract the remaining time from the task itself.
 function getRemainingTime() {
-    return 24 * 60 * 1000;
+    return 25 * 60 * 1000;
 }
