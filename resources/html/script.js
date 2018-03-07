@@ -47,6 +47,18 @@ function notifyMe() {
 
 }
 
+function startStopButton() {
+    var btnStart = $("#startTaskBtn");
+    var btnState = btnStart.text();
+    if (btnState == "Start") {
+        startTimer();
+        btnStart.text("Stop");
+    } else {
+        stopTimer();
+        btnStart.text("Start");
+    }
+}
+
 function startTimer() {
     timer = setInterval(timerEnds, 1000);
 
@@ -54,6 +66,11 @@ function startTimer() {
     timeEnd = currentTime + getRemainingTime();
 
     resetCommitInterval(currentTime);
+}
+
+function stopTimer() {
+    commitRecord();
+    clearInterval(timer);
 }
 
 // Sets when the commit interval should happen.
@@ -66,12 +83,11 @@ function timerEnds() {
     var currentTime = new Date().getTime();
     if (currentTime > timeEnd) {
         notifyMe();
-        clearInterval(timer);
-        timeEnd = currentTime;
-        commitRecord();
+        stopTimer();
+    } else {
+        // If the timer ends, avoid duplicate record commit.
+        handleCommitInterval(currentTime);
     }
-
-    handleCommitInterval(currentTime);
 
     displayTime(timeEnd - currentTime, $("#time"));
 }
