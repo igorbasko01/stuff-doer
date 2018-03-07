@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   };
 
-  displayTime(getRemainingTime());
+  displayTime(getRemainingTime(), $("#time"));
 
   xhttp.open("GET", "http://localhost:9080/basched/unfinishedtasks", true);
   xhttp.send();
@@ -71,18 +71,20 @@ function timerEnds() {
         commitRecord();
     }
 
-    handleCommitInterval();
+    handleCommitInterval(currentTime);
 
-    displayTime(timeEnd - currentTime);
+    displayTime(timeEnd - currentTime, $("#time"));
 }
 
 // Checks if an interval passed and commits the work to the server.
-function handleCommitInterval() {
-    var currentTime = new Date().getTime();
+function handleCommitInterval(currentTime) {
+//    var currentTime = new Date().getTime();
     if (currentTime > intervalEnd) {
         commitRecord();
         resetCommitInterval(currentTime);
     }
+
+    displayTime(intervalEnd - currentTime, $("#intervalTime"));
 }
 
 // It means that it adds a row to the RECORDS table.
@@ -92,14 +94,14 @@ function commitRecord() {
 }
 
 // Display the remaining pomodoro time in a pretty way :)
-function displayTime(timeToDisplay) {
+function displayTime(timeToDisplay, domObject) {
     var minutesRemaining = Math.floor(timeToDisplay / 1000 / 60);
     var secondsRemaining = Math.floor((timeToDisplay / 1000) - (minutesRemaining * 60));
 
     var mintsToDisp = (minutesRemaining < 10) ? "0" + minutesRemaining : minutesRemaining;
     var scndsToDisp = (secondsRemaining < 10) ? "0" + secondsRemaining : secondsRemaining;
 
-    $("#time").text(mintsToDisp + ":" + scndsToDisp);
+    domObject.text(mintsToDisp + ":" + scndsToDisp);
 }
 
 function gotoAddTaskPage() {
