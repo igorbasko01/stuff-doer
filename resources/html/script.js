@@ -71,7 +71,8 @@ function startTimer() {
 }
 
 function stopTimer() {
-    commitRecord();
+    var currentTime = new Date().getTime();
+    commitRecord(currentTime);
     clearInterval(timer);
 }
 
@@ -98,7 +99,7 @@ function timerEnds() {
 function handleCommitInterval(currentTime) {
 //    var currentTime = new Date().getTime();
     if (currentTime > intervalEnd) {
-        commitRecord();
+        commitRecord(currentTime);
         resetCommitInterval(currentTime);
     }
 
@@ -106,7 +107,7 @@ function handleCommitInterval(currentTime) {
 }
 
 // It means that it adds a row to the RECORDS table.
-function commitRecord() {
+function commitRecord(currentTime) {
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
         handleRecordCommitResponse(this);
@@ -114,7 +115,14 @@ function commitRecord() {
 
 
     // TODO: Finish the parameters.
-    xhttp.open("POST", "http://localhost:9080/basched/addRecord?prj="+projId+"&name="+projName+"&pri="+projPri, true);
+    var taskid = currentTask.id;
+    var timestamp = currentTime;
+    // Calculate how much time the duration of the interval was.
+    // The max length of an interval without the part of the time that passed.
+    var duration = intervalToUpdate_ms - Math.max(0, intervalEnd - currentTime);
+    xhttp.open("POST",
+        "http://localhost:9080/basched/addRecord?taskid="+taskid+"&timestamp="+timestamp+"&duration="+duration,
+        true);
     xhttp.send();
 }
 
