@@ -114,7 +114,6 @@ function commitRecord(currentTime) {
     };
 
 
-    // TODO: Finish the parameters.
     var taskid = currentTask.id;
     var timestamp = currentTime;
     // Calculate how much time the duration of the interval was.
@@ -150,6 +149,7 @@ function gotoAddTaskPage() {
 }
 
 function handleTasksReply(response) {
+    console.log("Unfinished task reply handling now.")
     var tasks = JSON.parse(response).tasks;
     var tasksRows = [];
     var current_task = ""
