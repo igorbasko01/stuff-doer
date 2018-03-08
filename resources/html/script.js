@@ -105,8 +105,23 @@ function handleCommitInterval(currentTime) {
 
 // It means that it adds a row to the RECORDS table.
 function commitRecord() {
-    console.log("Record Committed !")
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        handleRecordCommitResponse(this);
+    };
 
+
+    // TODO: Finish the parameters.
+    xhttp.open("POST", "http://localhost:9080/basched/addRecord?prj="+projId+"&name="+projName+"&pri="+projPri, true);
+    xhttp.send();
+}
+
+function handleRecordCommitResponse(responseObject) {
+    if (responseObject.readyState == 4 && responseObject.status == 200) {
+        console.log("Record Committed !");
+    } else {
+        console.log("Could not commit record !");
+    }
 }
 
 // Display the remaining pomodoro time in a pretty way :)

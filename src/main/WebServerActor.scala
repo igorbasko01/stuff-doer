@@ -134,6 +134,11 @@ class WebServerActor(hostname: String,
           case _ => complete(StatusCodes.NotFound)
         }
       }
+    } ~
+    path ("basched" / "addRecord") {
+      parameters('taskid, 'timestamp, 'duration) { (taskid, timestamp, duration) =>
+        complete(StatusCodes.Created)
+      }
     }
   }
 
