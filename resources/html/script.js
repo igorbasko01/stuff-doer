@@ -6,6 +6,8 @@ var intervalEnd;
 
 var priority = ["Immediate", "High", "Regular"];
 
+var currentTask;
+
 // request permission on page load
 document.addEventListener('DOMContentLoaded', function () {
   if (Notification.permission !== "granted")
@@ -142,13 +144,14 @@ function gotoAddTaskPage() {
 function handleTasksReply(response) {
     var tasks = JSON.parse(response).tasks;
     var tasksRows = [];
-    var currentTask = ""
+    var current_task = ""
     for (var i = 0; i < tasks.length; i++) {
         var taskName = tasks[i].name;
         var taskPri = priority[tasks[i].priority];
         var html = "<tr><td>"+taskName+"</td><td>"+taskPri+"</td></tr>"
         if (tasks[i].current == true) {
-            currentTask = html;
+            current_task = html;
+            currentTask = tasks[i];
         } else {
             tasksRows.push(html);
         }
@@ -156,7 +159,7 @@ function handleTasksReply(response) {
 
     var waitingTasks = $("#tasks_table");
     waitingTasks.append(tasksRows.join(""));
-    $("#current_task").append(currentTask);
+    $("#current_task").append(current_task);
 }
 
 // Returns the amount of time in ms remaining in the pomodoro of the current task.
