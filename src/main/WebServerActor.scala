@@ -9,7 +9,7 @@ import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusC
 import akka.http.scaladsl.server.Directives
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import main.BaschedRequest.{ReplyAddTask, ReplyAllProjects, ReplyAllUnfinishedTasks}
+import main.BaschedRequest.{ReplyAddRecord, ReplyAddTask, ReplyAllProjects, ReplyAllUnfinishedTasks}
 import main.DatabaseActor.QueryResult
 import org.joda.time.DateTime
 import spray.json._
@@ -129,15 +129,22 @@ class WebServerActor(hostname: String,
         val response = sendRequest(BaschedRequest.AddTask(prj.toInt,name,priority)).mapTo[ReplyAddTask]
 
         onSuccess(response) {
-          case ReplyAddTask(BaschedRequest.TASK_ADDED) => complete(StatusCodes.Created)
-          case ReplyAddTask(BaschedRequest.TASK_DUPLICATE) => complete(StatusCodes.Conflict)
+          case ReplyAddTask(BaschedRequest.ADDED) => complete(StatusCodes.Created)
+          case ReplyAddTask(BaschedRequest.DUPLICATE) => complete(StatusCodes.Conflict)
           case _ => complete(StatusCodes.NotFound)
         }
       }
     } ~
     path ("basched" / "addRecord") {
       parameters('taskid, 'timestamp, 'duration) { (taskid, timestamp, duration) =>
-        complete(StatusCodes.Created)
+        val response = sendRequest(BaschedRequest.RequestAddRecord(taskid.toInt, timestamp.toLong, duration.toLong))
+          .mapTo[ReplyAddRecord]
+
+        onSuccess(response) {
+          case ReplyAddRecord(BaschedRequest.ADDED) => complete(StatusCodes.Created)
+          case ReplyAddRecord(BaschedRequest.DUPLICATE) => complete(StatusCodes.Conflict)
+          case _ => complete(StatusCodes.NotFound)
+        }
       }
     }
   }

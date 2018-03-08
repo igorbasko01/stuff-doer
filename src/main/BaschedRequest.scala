@@ -17,15 +17,18 @@ object BaschedRequest {
   case class ReplyAllProjects(projects: List[Project]) extends Message
 
   case class AddTask(prjId: Int, name: String, priority: String) extends Message
-  val TASK_ADDED = 0
-  val TASK_DUPLICATE = 1
-  val TASK_ERROR = 2
+  val ADDED = 0
+  val DUPLICATE = 1
+  val ERROR = 2
   case class ReplyAddTask(response: Int) extends Message
 
   case object RequestAllUnfinishedTasks extends Message
   case class Task(id: Int, prjId: Int, name: String, startTimestamp: String, priority: Int, status: Int,
                   pomodoros: Int, current: Boolean)
   case class ReplyAllUnfinishedTasks(tasks: List[Task])
+
+  case class RequestAddRecord(taskId: Int, endTimestamp: Long, duration: Long) extends Message
+  case class ReplyAddRecord(response: Int)
 
   /**
     * Returns a [[Props]] object with instantiated [[BaschedRequest]] class.
@@ -51,6 +54,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
   override def receive: Receive = {
     case RequestAllProjects => queryGetAllProjects()
     case addTask: AddTask => addNewTask(addTask)
+    case addRecord: RequestAddRecord => addNewRecord(addRecord)
     case RequestAllUnfinishedTasks => queryAllUnfinishedTasks()
     case r: DatabaseActor.QueryResult =>
       handleReply(r)
@@ -82,9 +86,24 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
 
   def replyAddTask(r: DatabaseActor.QueryResult) : Unit = {
     r match {
-      case QueryResult(_, _, _, 0) => replyTo ! ReplyAddTask(BaschedRequest.TASK_ADDED)
-      case QueryResult(_, _, _, 23505) => replyTo ! ReplyAddTask(BaschedRequest.TASK_DUPLICATE)
-      case _ => replyTo ! ReplyAddTask(BaschedRequest.TASK_ERROR)
+      case QueryResult(_, _, _, 0) => replyTo ! ReplyAddTask(BaschedRequest.ADDED)
+      case QueryResult(_, _, _, 23505) => replyTo ! ReplyAddTask(BaschedRequest.DUPLICATE)
+      case _ => replyTo ! ReplyAddTask(BaschedRequest.ERROR)
+    }
+  }
+
+  def addNewRecord(newRecord: RequestAddRecord) : Unit = {
+    replyTo = sender()
+    handleReply = replyAddRecord
+    db ! DatabaseActor.QueryDB(0, s"INSERT INTO ${Basched.TABLE_NAME_RECORDS} (TSKID, END, DURATION_MS) " +
+      s"VALUES (${newRecord.taskId},${newRecord.endTimestamp},${newRecord.duration})", update = true)
+  }
+
+  def replyAddRecord(r: DatabaseActor.QueryResult) : Unit = {
+    r match {
+      case QueryResult(_, _, _, 0) => replyTo ! ReplyAddRecord(BaschedRequest.ADDED)
+      case QueryResult(_, _, _, 23505) => replyTo ! ReplyAddRecord(BaschedRequest.DUPLICATE)
+      case _ => replyTo ! ReplyAddRecord(BaschedRequest.ERROR)
     }
   }
 

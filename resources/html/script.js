@@ -126,9 +126,9 @@ function commitRecord(currentTime) {
 }
 
 function handleRecordCommitResponse(responseObject) {
-    if (responseObject.readyState == 4 && responseObject.status == 200) {
+    if (responseObject.readyState == 4 && responseObject.status == 201) {
         console.log("Record Committed !");
-    } else {
+    } else if (responseObject.readyState == 4) {
         console.log("Could not commit record !");
     }
 }
