@@ -8,14 +8,14 @@
     <script src="script.js"></script>
 </head>
 <body>
-    <div id="time">1</div>
+    <div><h1 id="time">00:00</h1><p id="intervalTime">00:00</p></div>
+    <button id="startTaskBtn" onclick="startStopButton()">Start</button>
+    <button onclick="gotoAddTaskPage()">Add Tasks</button>
     <table id="current_task">
         <tr><th>Current Task</th><th>Priority</th></tr>
     </table>
-    <button onclick="startTimer()">Start</button>
-    <button onclick="gotoAddTaskPage()">Add Tasks</button>
     <table id="tasks_table">
-        <tr><th>Tasks</th><th>Priority</th></tr>
+        <tr><th>Other Tasks</th><th>Priority</th></tr>
     </table>
 </body>
 </html>
