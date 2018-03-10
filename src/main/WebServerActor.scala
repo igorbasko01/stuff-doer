@@ -11,7 +11,6 @@ import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import main.BaschedRequest.{ReplyAddRecord, ReplyAddTask, ReplyAllProjects, ReplyAllUnfinishedTasks}
 import main.DatabaseActor.QueryResult
-import org.joda.time.DateTime
 import spray.json._
 
 import scala.concurrent.Future
@@ -52,32 +51,11 @@ class WebServerActor(hostname: String,
   val route =
     get {
       pathSingleSlash {
-        complete(s"Welcome to stuff doer !")
+        complete(s"Welcome to Stuff Doer !")
       } ~
       path("shutdown") {
         self ! WebServerActor.Shutdown
         complete(s"Shutting down...")
-      } ~
-      path("unfinishedactions") {
-        val response = (databaseActor ? DatabaseActor.QueryUnfinishedActions).mapTo[List[DatabaseActor.Action]]
-
-        onSuccess(response) {
-          case res: List[DatabaseActor.Action] =>
-            complete(s"Unfinished actions:\n${res.map(action => action.toString).mkString("\n")}\n<EOF>")
-          case _ =>
-            complete(s"Error !")
-        }
-      } ~
-      path("add_action") {
-        parameters('action, 'params) { (action, params) =>
-          val created = DateTime.now()
-          val lastUpdated = created
-          val newAction = DatabaseActor.Action(None, created, action,
-            params.split(DatabaseActor.PARAMS_DELIMITER).toList, DatabaseActor.ACTION_STATUS_INITIAL, lastUpdated)
-          databaseActor ! newAction
-
-          complete(s"Adding the following action: $action->$params")
-        }
       } ~
       path("query") {
         parameters('text) { (text) =>
