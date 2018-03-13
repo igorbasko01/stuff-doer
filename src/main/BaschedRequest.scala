@@ -30,7 +30,7 @@ object BaschedRequest {
   case class RequestAddRecord(taskId: Int, endTimestamp: Long, duration: Long) extends Message
   case class ReplyAddRecord(response: Int)
 
-  case class RequestRemainingTimeInPomodoro(taskId: Int) extends Message
+  case class RequestRemainingTimeInPomodoro(taskId: Int, priority: Int) extends Message
   case class ReplyRemainingTimeInPomodoro(duration: Long)
 
   /**
@@ -59,6 +59,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     case addTask: AddTask => addNewTask(addTask)
     case addRecord: RequestAddRecord => addNewRecord(addRecord)
     case RequestAllUnfinishedTasks => queryAllUnfinishedTasks()
+    case req: RequestRemainingTimeInPomodoro => queryRemainingTimeInPomodoro(req.taskId,req.priority)
     case r: DatabaseActor.QueryResult =>
       handleReply(r)
       self ! PoisonPill

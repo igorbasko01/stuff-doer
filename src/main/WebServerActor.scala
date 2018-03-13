@@ -21,6 +21,7 @@ import scala.concurrent.duration._
   */
 final case class Tasks(tasks: List[BaschedRequest.Task])
 final case class Projects(projects: List[BaschedRequest.Project])
+final case class PomodoroDuration(duration: Long)
 
 trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val taskFormat = jsonFormat8(BaschedRequest.Task)
@@ -28,6 +29,8 @@ trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit val projFormat = jsonFormat2(BaschedRequest.Project)
   implicit val projsFormat = jsonFormat1(Projects)
+
+  implicit val pomodoroDurationFormat = jsonFormat1(PomodoroDuration)
 }
 
 object WebServerActor {
@@ -95,6 +98,18 @@ class WebServerActor(hostname: String,
           case ReplyAllUnfinishedTasks(tasks) => complete(Tasks(tasks))
           case other => complete(HttpResponse(StatusCodes.NotFound,Nil,
             HttpEntity(ContentTypes.`text/plain(UTF-8)`,s"Could not get any tasks: $other")))
+        }
+      } ~
+      path("basched" / "getRemainingPomodoroTime") {
+        parameters('taskid, 'priority) { (taskid, priority) =>
+          val response = sendRequest(BaschedRequest.RequestRemainingTimeInPomodoro(taskid.toInt,Basched.PRIORITY(priority)))
+            .mapTo[BaschedRequest.ReplyRemainingTimeInPomodoro]
+
+          onSuccess(response) {
+            case BaschedRequest.ReplyRemainingTimeInPomodoro(duration) => complete(PomodoroDuration(duration))
+            case other => complete(HttpResponse(StatusCodes.NotFound,Nil,
+              HttpEntity(ContentTypes.`text/plain(UTF-8)`,s"Could not get a duration: $other")))
+          }
         }
       } ~
       pathPrefix("html") {
