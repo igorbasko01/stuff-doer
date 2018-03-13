@@ -30,6 +30,9 @@ object BaschedRequest {
   case class RequestAddRecord(taskId: Int, endTimestamp: Long, duration: Long) extends Message
   case class ReplyAddRecord(response: Int)
 
+  case class RequestRemainingTimeInPomodoro(taskId: Int) extends Message
+  case class ReplyRemainingTimeInPomodoro(duration: Long)
+
   /**
     * Returns a [[Props]] object with instantiated [[BaschedRequest]] class.
     * @param db The [[DatabaseActor]] that the queries will be sent to.
@@ -180,5 +183,23 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
   def getOtherPriorityTaskId(tasks: List[Task]) : Option[Int] = {
     if (tasks.nonEmpty) Some(tasks.minBy(_.pomodoros).id)
     else None
+  }
+
+  /**
+    * Calculates and returns how much time left in the current pomodoro of the [[Task]].
+    * @param taskId The [[Task.id]] for which to calculate the remaining time in the pomodoro.
+    * @param taskPriority The [[Task.priority]]
+    */
+  def queryRemainingTimeInPomodoro(taskId: Int, taskPriority: Int) : Unit = {
+    replyTo = sender()
+    handleReply = replyRemainingTimeInPomodoro(taskPriority)
+    db ! DatabaseActor.QueryDB(0, s"SELECT SUM(DURATION_MS) FROM ${Basched.TABLE_NAME_RECORDS} " +
+      s"WHERE TSKID = $taskId")
+  }
+
+  def replyRemainingTimeInPomodoro(priority: Int)(r: DatabaseActor.QueryResult) : Unit = {
+    val totalDuration = r.result.get.head.head.toLong
+    val numOfPomodorosDone = totalDuration / Basched.NUM_OF_PMDRS_PER_PRIORITY(priority)
+    replyTo ! ReplyRemainingTimeInPomodoro(totalDuration)
   }
 }
