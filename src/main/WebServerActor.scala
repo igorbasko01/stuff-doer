@@ -102,7 +102,7 @@ class WebServerActor(hostname: String,
       } ~
       path("basched" / "getRemainingPomodoroTime") {
         parameters('taskid, 'priority) { (taskid, priority) =>
-          val response = sendRequest(BaschedRequest.RequestRemainingTimeInPomodoro(taskid.toInt,Basched.PRIORITY(priority)))
+          val response = sendRequest(BaschedRequest.RequestRemainingTimeInPomodoro(taskid.toInt,priority.toInt))
             .mapTo[BaschedRequest.ReplyRemainingTimeInPomodoro]
 
           onSuccess(response) {
