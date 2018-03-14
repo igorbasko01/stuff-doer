@@ -18,10 +18,9 @@ document.addEventListener('DOMContentLoaded', function () {
   xhttp.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
         handleTasksReply(this.responseText);
+        getRemainingTime(displayTime);
     }
   };
-
-  displayTime(getRemainingTime(), $("#time"));
 
   xhttp.open("GET", "http://localhost:9080/basched/unfinishedtasks", true);
   xhttp.send();
@@ -62,10 +61,14 @@ function startStopButton() {
 }
 
 function startTimer() {
-    timer = setInterval(timerEnds, 1000);
+    getRemainingTime(resetIntervals);
+}
 
+function resetIntervals(pomodoroDuration) {
     var currentTime = new Date().getTime();
-    timeEnd = currentTime + getRemainingTime();
+    timeEnd = currentTime + pomodoroDuration;
+
+    timer = setInterval(timerEnds, 1000);
 
     resetCommitInterval(currentTime);
 }
@@ -134,7 +137,7 @@ function handleRecordCommitResponse(responseObject) {
 }
 
 // Display the remaining pomodoro time in a pretty way :)
-function displayTime(timeToDisplay, domObject) {
+function displayTime(timeToDisplay, domObject = $("#time")) {
     var minutesRemaining = Math.floor(timeToDisplay / 1000 / 60);
     var secondsRemaining = Math.floor((timeToDisplay / 1000) - (minutesRemaining * 60));
 
@@ -170,8 +173,22 @@ function handleTasksReply(response) {
     $("#current_task").append(current_task);
 }
 
-// Returns the amount of time in ms remaining in the pomodoro of the current task.
-//TODO: Extract the remaining time from the task itself.
-function getRemainingTime() {
-    return 25 * 60 * 1000;
+// Gets a calculation of the remaining time in the pomodoro from the server. And executes some callback function
+// that should get the duration as a parameter.
+function getRemainingTime(callbackToRun) {
+    console.log("getting time.")
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            var duration = JSON.parse(this.responseText).duration;
+            callbackToRun(duration);
+        } else if (this.readyState == 4) {
+            console.log("Could not retrieve pomodoro time.");
+        }
+    };
+
+    xhttp.open("GET",
+        "http://localhost:9080/basched/getRemainingPomodoroTime?taskid="+currentTask.id+"&priority="+currentTask.priority,
+        true);
+    xhttp.send();
 }

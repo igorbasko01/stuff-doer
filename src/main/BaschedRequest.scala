@@ -5,6 +5,8 @@ import main.BaschedRequest._
 import main.DatabaseActor.QueryResult
 import org.joda.time.format.DateTimeFormat
 
+import scala.util.{Success, Try}
+
 /**
   * A companion object for [[BaschedRequest]]. Contains all the messages that are handle by it and a props function
   * to use when creating an actor of type [[BaschedRequest]].
@@ -29,6 +31,9 @@ object BaschedRequest {
 
   case class RequestAddRecord(taskId: Int, endTimestamp: Long, duration: Long) extends Message
   case class ReplyAddRecord(response: Int)
+
+  case class RequestRemainingTimeInPomodoro(taskId: Int, priority: Int) extends Message
+  case class ReplyRemainingTimeInPomodoro(duration: Long)
 
   /**
     * Returns a [[Props]] object with instantiated [[BaschedRequest]] class.
@@ -56,6 +61,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     case addTask: AddTask => addNewTask(addTask)
     case addRecord: RequestAddRecord => addNewRecord(addRecord)
     case RequestAllUnfinishedTasks => queryAllUnfinishedTasks()
+    case req: RequestRemainingTimeInPomodoro => queryRemainingTimeInPomodoro(req.taskId,req.priority)
     case r: DatabaseActor.QueryResult =>
       handleReply(r)
       self ! PoisonPill
@@ -180,5 +186,27 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
   def getOtherPriorityTaskId(tasks: List[Task]) : Option[Int] = {
     if (tasks.nonEmpty) Some(tasks.minBy(_.pomodoros).id)
     else None
+  }
+
+  /**
+    * Calculates and returns how much time left in the current pomodoro of the [[Task]].
+    * @param taskId The [[Task.id]] for which to calculate the remaining time in the pomodoro.
+    * @param taskPriority The [[Task.priority]]
+    */
+  def queryRemainingTimeInPomodoro(taskId: Int, taskPriority: Int) : Unit = {
+    replyTo = sender()
+    handleReply = replyRemainingTimeInPomodoro(taskPriority)
+    db ! DatabaseActor.QueryDB(0, s"SELECT SUM(DURATION_MS) FROM ${Basched.TABLE_NAME_RECORDS} " +
+      s"WHERE TSKID = $taskId")
+  }
+
+  def replyRemainingTimeInPomodoro(priority: Int)(r: DatabaseActor.QueryResult) : Unit = {
+    val totalDuration = Try(r.result.get.head.head.toLong) match {
+      case Success(x) => x
+      case _ => 0
+    }
+    val numOfPomodorosDone = totalDuration / Basched.POMODORO_MAX_DURATION_MS
+    val remainingTime = Basched.POMODORO_MAX_DURATION_MS - (totalDuration - (numOfPomodorosDone * Basched.POMODORO_MAX_DURATION_MS))
+    replyTo ! ReplyRemainingTimeInPomodoro(remainingTime)
   }
 }
