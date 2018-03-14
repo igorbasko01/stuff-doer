@@ -200,7 +200,8 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
 
   def replyRemainingTimeInPomodoro(priority: Int)(r: DatabaseActor.QueryResult) : Unit = {
     val totalDuration = r.result.get.head.head.toLong
-    val numOfPomodorosDone = totalDuration / Basched.NUM_OF_PMDRS_PER_PRIORITY(priority)
-    replyTo ! ReplyRemainingTimeInPomodoro(totalDuration)
+    val numOfPomodorosDone = totalDuration / Basched.POMODORO_MAX_DURATION_MS
+    val remainingTime = Basched.POMODORO_MAX_DURATION_MS - (totalDuration - (numOfPomodorosDone * Basched.POMODORO_MAX_DURATION_MS))
+    replyTo ! ReplyRemainingTimeInPomodoro(remainingTime)
   }
 }
