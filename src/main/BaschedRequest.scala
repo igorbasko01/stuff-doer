@@ -189,7 +189,8 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
   }
 
   /**
-    * Calculates and returns how much time left in the current pomodoro of the [[Task]].
+    * Query the database about the duration of the [[Task]] to later determine how much time left in the last
+    * pomodoro.
     * @param taskId The [[Task.id]] for which to calculate the remaining time in the pomodoro.
     * @param taskPriority The [[Task.priority]]
     */
@@ -200,7 +201,13 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
       s"WHERE TSKID = $taskId")
   }
 
+  /**
+    * Calculates how much time left in the last pomodoro.
+    * @param priority The [[Task.priority]].
+    * @param r The reply from the [[DatabaseActor]], should contain the sum of all the records of the specific task.
+    */
   def replyRemainingTimeInPomodoro(priority: Int)(r: DatabaseActor.QueryResult) : Unit = {
+    // If the task is brand new, the total duration that was done, is 0.
     val totalDuration = Try(r.result.get.head.head.toLong) match {
       case Success(x) => x
       case _ => 0
