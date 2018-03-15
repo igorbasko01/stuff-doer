@@ -48,14 +48,15 @@ function notifyMe() {
 
 }
 
-function startStopButton() {
+function startStopButton(currentTime = new Date().getTime()) {
     var btnStart = $("#startTaskBtn");
     var btnState = btnStart.text();
     if (btnState == "Start") {
         startTimer();
         btnStart.text("Stop");
     } else {
-        stopTimer();
+        stopTimer(currentTime);
+        getRemainingTime(displayTime);
         btnStart.text("Start");
     }
 }
@@ -73,8 +74,7 @@ function resetIntervals(pomodoroDuration) {
     resetCommitInterval(currentTime);
 }
 
-function stopTimer() {
-    var currentTime = new Date().getTime();
+function stopTimer(currentTime) {
     commitRecord(currentTime);
     clearInterval(timer);
 }
@@ -89,7 +89,8 @@ function timerEnds() {
     var currentTime = new Date().getTime();
     if (currentTime > timeEnd) {
         notifyMe();
-        stopTimer();
+        startStopButton(currentTime);
+        timeEnd = currentTime;
     } else {
         // If the timer ends, avoid duplicate record commit.
         handleCommitInterval(currentTime);
@@ -100,7 +101,6 @@ function timerEnds() {
 
 // Checks if an interval passed and commits the work to the server.
 function handleCommitInterval(currentTime) {
-//    var currentTime = new Date().getTime();
     if (currentTime > intervalEnd) {
         commitRecord(currentTime);
         resetCommitInterval(currentTime);
@@ -122,8 +122,9 @@ function commitRecord(currentTime) {
     // Calculate how much time the duration of the interval was.
     // The max length of an interval without the part of the time that passed.
     var duration = intervalToUpdate_ms - Math.max(0, intervalEnd - currentTime);
+    var roundedDuration = Math.round(duration/1000)*1000;
     xhttp.open("POST",
-        "http://localhost:9080/basched/addRecord?taskid="+taskid+"&timestamp="+timestamp+"&duration="+duration,
+        "http://localhost:9080/basched/addRecord?taskid="+taskid+"&timestamp="+timestamp+"&duration="+roundedDuration,
         true);
     xhttp.send();
 }
