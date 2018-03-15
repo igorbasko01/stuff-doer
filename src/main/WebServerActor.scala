@@ -139,6 +139,17 @@ class WebServerActor(hostname: String,
           case _ => complete(StatusCodes.NotFound)
         }
       }
+    } ~
+    path ("basched" / "updatePomodorosCount") {
+      parameters('taskid, 'pomodorosToAdd) { (taskid, pomodorosToAdd) =>
+        val response = sendRequest(BaschedRequest.RequestUpdatePmdrCountInTask(taskid.toInt, pomodorosToAdd.toInt)).
+          mapTo[BaschedRequest.ReplyUpdatePmdrCountInTask]
+
+        onSuccess(response) {
+          case BaschedRequest.ReplyUpdatePmdrCountInTask(BaschedRequest.ADDED) => complete(StatusCodes.Created)
+          case _ => complete(StatusCodes.NotFound)
+        }
+      }
     }
   }
 

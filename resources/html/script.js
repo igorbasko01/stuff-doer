@@ -193,3 +193,11 @@ function getRemainingTime(callbackToRun) {
         true);
     xhttp.send();
 }
+
+function updatePomodoros() {
+    var xhttp = new XMLHttpRequest();
+    xhttp.open("POST",
+        "http://localhost:9080/basched/updatePomodorosCount?taskid="+currentTask.id+"&pomodorosToAdd=1",
+        true);
+    xhttp.send();
+}

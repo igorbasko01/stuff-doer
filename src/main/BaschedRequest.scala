@@ -64,6 +64,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     case addTask: AddTask => addNewTask(addTask)
     case addRecord: RequestAddRecord => addNewRecord(addRecord)
     case RequestAllUnfinishedTasks => queryAllUnfinishedTasks()
+    case RequestUpdatePmdrCountInTask(taskid, pom) => requestUpdatePmdrCount(taskid, pom)
     case req: RequestRemainingTimeInPomodoro => queryRemainingTimeInPomodoro(req.taskId,req.priority)
     case r: DatabaseActor.QueryResult =>
       handleReply(r)
