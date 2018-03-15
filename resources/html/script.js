@@ -13,17 +13,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (Notification.permission !== "granted")
     Notification.requestPermission();
 
-  // Get all unfinished tasks.
-  var xhttp = new XMLHttpRequest();
-  xhttp.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-        handleTasksReply(this.responseText);
-        getRemainingTime(displayTime);
-    }
-  };
-
-  xhttp.open("GET", "http://localhost:9080/basched/unfinishedtasks", true);
-  xhttp.send();
+  requestUnfinishedTasks();
 });
 
 function notifyMe() {
@@ -194,10 +184,24 @@ function getRemainingTime(callbackToRun) {
     xhttp.send();
 }
 
-function updatePomodoros() {
+function requestUnfinishedTasks() {
+    // Get all unfinished tasks.
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+          handleTasksReply(this.responseText);
+          getRemainingTime(displayTime);
+      }
+    };
+
+    xhttp.open("GET", "http://localhost:9080/basched/unfinishedtasks", true);
+    xhttp.send();
+}
+
+function updatePomodoros(taskid, pomodorosToAdd) {
     var xhttp = new XMLHttpRequest();
     xhttp.open("POST",
-        "http://localhost:9080/basched/updatePomodorosCount?taskid="+currentTask.id+"&pomodorosToAdd=1",
+        "http://localhost:9080/basched/updatePomodorosCount?taskid="+taskid+"&pomodorosToAdd="+pomodorosToAdd,
         true);
     xhttp.send();
 }
