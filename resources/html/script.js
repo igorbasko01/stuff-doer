@@ -13,17 +13,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (Notification.permission !== "granted")
     Notification.requestPermission();
 
-  // Get all unfinished tasks.
-  var xhttp = new XMLHttpRequest();
-  xhttp.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-        handleTasksReply(this.responseText);
-        getRemainingTime(displayTime);
-    }
-  };
-
-  xhttp.open("GET", "http://localhost:9080/basched/unfinishedtasks", true);
-  xhttp.send();
+  requestUnfinishedTasks();
 });
 
 function notifyMe() {
@@ -48,14 +38,15 @@ function notifyMe() {
 
 }
 
-function startStopButton() {
+function startStopButton(currentTime = new Date().getTime()) {
     var btnStart = $("#startTaskBtn");
     var btnState = btnStart.text();
     if (btnState == "Start") {
         startTimer();
         btnStart.text("Stop");
     } else {
-        stopTimer();
+        stopTimer(currentTime);
+        getRemainingTime(displayTime);
         btnStart.text("Start");
     }
 }
@@ -73,8 +64,7 @@ function resetIntervals(pomodoroDuration) {
     resetCommitInterval(currentTime);
 }
 
-function stopTimer() {
-    var currentTime = new Date().getTime();
+function stopTimer(currentTime) {
     commitRecord(currentTime);
     clearInterval(timer);
 }
@@ -89,7 +79,10 @@ function timerEnds() {
     var currentTime = new Date().getTime();
     if (currentTime > timeEnd) {
         notifyMe();
-        stopTimer();
+        startStopButton(currentTime);
+        updatePomodoros(currentTask.id, 1);
+        requestUnfinishedTasks();
+        timeEnd = currentTime;
     } else {
         // If the timer ends, avoid duplicate record commit.
         handleCommitInterval(currentTime);
@@ -100,7 +93,6 @@ function timerEnds() {
 
 // Checks if an interval passed and commits the work to the server.
 function handleCommitInterval(currentTime) {
-//    var currentTime = new Date().getTime();
     if (currentTime > intervalEnd) {
         commitRecord(currentTime);
         resetCommitInterval(currentTime);
@@ -122,8 +114,9 @@ function commitRecord(currentTime) {
     // Calculate how much time the duration of the interval was.
     // The max length of an interval without the part of the time that passed.
     var duration = intervalToUpdate_ms - Math.max(0, intervalEnd - currentTime);
+    var roundedDuration = Math.round(duration/1000)*1000;
     xhttp.open("POST",
-        "http://localhost:9080/basched/addRecord?taskid="+taskid+"&timestamp="+timestamp+"&duration="+duration,
+        "http://localhost:9080/basched/addRecord?taskid="+taskid+"&timestamp="+timestamp+"&duration="+roundedDuration,
         true);
     xhttp.send();
 }
@@ -153,6 +146,10 @@ function gotoAddTaskPage() {
 
 function handleTasksReply(response) {
     console.log("Unfinished task reply handling now.")
+    $("#tasks_table tr").remove();
+    $("#current_task tr").remove();
+    $("#current_task").append("<tr><th>Current Task</th><th>Priority</th></tr>}");
+    $("#tasks_table").append("<tr><th>Other Tasks</th><th>Priority</th></tr>")
     var tasks = JSON.parse(response).tasks;
     var tasksRows = [];
     var current_task = ""
@@ -189,6 +186,28 @@ function getRemainingTime(callbackToRun) {
 
     xhttp.open("GET",
         "http://localhost:9080/basched/getRemainingPomodoroTime?taskid="+currentTask.id+"&priority="+currentTask.priority,
+        true);
+    xhttp.send();
+}
+
+function requestUnfinishedTasks() {
+    // Get all unfinished tasks.
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+          handleTasksReply(this.responseText);
+          getRemainingTime(displayTime);
+      }
+    };
+
+    xhttp.open("GET", "http://localhost:9080/basched/unfinishedtasks", true);
+    xhttp.send();
+}
+
+function updatePomodoros(taskid, pomodorosToAdd) {
+    var xhttp = new XMLHttpRequest();
+    xhttp.open("POST",
+        "http://localhost:9080/basched/updatePomodorosCount?taskid="+taskid+"&pomodorosToAdd="+pomodorosToAdd,
         true);
     xhttp.send();
 }
