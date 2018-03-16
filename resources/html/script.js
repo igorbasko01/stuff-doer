@@ -80,6 +80,8 @@ function timerEnds() {
     if (currentTime > timeEnd) {
         notifyMe();
         startStopButton(currentTime);
+        updatePomodoros(currentTask.id, 1);
+        requestUnfinishedTasks();
         timeEnd = currentTime;
     } else {
         // If the timer ends, avoid duplicate record commit.
@@ -144,6 +146,10 @@ function gotoAddTaskPage() {
 
 function handleTasksReply(response) {
     console.log("Unfinished task reply handling now.")
+    $("#tasks_table tr").remove();
+    $("#current_task tr").remove();
+    $("#current_task").append("<tr><th>Current Task</th><th>Priority</th></tr>}");
+    $("#tasks_table").append("<tr><th>Other Tasks</th><th>Priority</th></tr>")
     var tasks = JSON.parse(response).tasks;
     var tasksRows = [];
     var current_task = ""
