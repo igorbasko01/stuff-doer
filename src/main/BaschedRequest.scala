@@ -38,6 +38,9 @@ object BaschedRequest {
   case class RequestUpdatePmdrCountInTask(taskId: Int, pmdrsToAdd: Int) extends Message
   case class ReplyUpdatePmdrCountInTask(response: Int)
 
+  case class RequestTaskDetails(taskId: Int) extends Message
+  case class ReplyTaskDetails(task: Task)
+
   /**
     * Returns a [[Props]] object with instantiated [[BaschedRequest]] class.
     * @param db The [[DatabaseActor]] that the queries will be sent to.
@@ -66,6 +69,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     case RequestAllUnfinishedTasks => queryAllUnfinishedTasks()
     case RequestUpdatePmdrCountInTask(taskid, pom) => requestUpdatePmdrCount(taskid, pom)
     case req: RequestRemainingTimeInPomodoro => queryRemainingTimeInPomodoro(req.taskId,req.priority)
+    case RequestTaskDetails(taskid) => requestTaskDetails(taskid)
     case r: DatabaseActor.QueryResult =>
       handleReply(r)
       self ! PoisonPill
@@ -242,5 +246,24 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
       case QueryResult(_, _, _, 0) => replyTo ! ReplyUpdatePmdrCountInTask(BaschedRequest.ADDED)
       case _ => replyTo ! ReplyUpdatePmdrCountInTask(BaschedRequest.ERROR)
     }
+  }
+
+  /**
+    * Handles the request for the details of a specific task by [[Task.id]]
+    * @param taskid The id of the [[Task]] to query.
+    */
+  def requestTaskDetails(taskid: Int) : Unit = {
+    replyTo = sender()
+    handleReply = replyTaskDetails
+    db ! DatabaseActor.QueryDB(0, s"SELECT * FROM ${Basched.TABLE_NAME_TASKS} WHERE ID = $taskid")
+  }
+
+  /**
+    * Replys to the requestor the queried [[Task]].
+    * @param r The reply from the [[DatabaseActor]].
+    */
+  def replyTaskDetails(r: DatabaseActor.QueryResult) : Unit = {
+    val task = r.result.get.map(listToTask).toList.head
+    replyTo ! ReplyTaskDetails(task)
   }
 }
