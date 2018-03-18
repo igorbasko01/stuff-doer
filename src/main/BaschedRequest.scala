@@ -183,12 +183,12 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
   }
 
   /**
-    * Get the [[Task.id]] where the logic of the [[Task.priority]] is the lowest [[Task.pomodoros]] count.
+    * Get the [[Task.id]] where the logic of the [[Task.priority]] is the highest [[Task.pomodoros]] count.
     * @param tasks List of [[Task]]s
     * @return An [[Task.id]] of the selected [[Task]].
     */
   def getOtherPriorityTaskId(tasks: List[Task]) : Option[Int] = {
-    if (tasks.nonEmpty) Some(tasks.minBy(_.pomodoros).id)
+    if (tasks.nonEmpty) Some(tasks.maxBy(_.pomodoros).id)
     else None
   }
 
