@@ -150,6 +150,24 @@ class WebServerActor(hostname: String,
           case _ => complete(StatusCodes.NotFound)
         }
       }
+    } ~
+    path ("basched" / "updateTaskWindowIfNeeded") {
+      parameters('taskid) { (taskid) =>
+        val response = sendRequest(BaschedRequest.RequestTaskDetails(taskid.toInt))
+          .mapTo[BaschedRequest.ReplyTaskDetails]
+
+        onSuccess(response) {
+          case BaschedRequest.ReplyTaskDetails(task) =>
+            val windowFinished = (task.pomodoros / Basched.NUM_OF_PMDRS_PER_PRIORITY(task.priority)) == 0
+            if (windowFinished) {
+              // Call the update pomodoro function here.
+              complete("Need to update the tasks status.")
+            } else {
+              complete(StatusCodes.OK)
+            }
+          case _ => complete(StatusCodes.NotFound)
+        }
+      }
     }
   }
 
