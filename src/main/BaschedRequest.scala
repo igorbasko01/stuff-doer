@@ -22,6 +22,7 @@ object BaschedRequest {
   val ADDED = 0
   val DUPLICATE = 1
   val ERROR = 2
+  val UPDATED = 3
   case class ReplyAddTask(response: Int) extends Message
 
   case object RequestAllUnfinishedTasks extends Message
@@ -40,6 +41,9 @@ object BaschedRequest {
 
   case class RequestTaskDetails(taskId: Int) extends Message
   case class ReplyTaskDetails(task: Task)
+
+  case class RequestTaskStatusUpdate(taskid: Int, newStatus: Int) extends Message
+  case class ReplyTaskStatusUpdate(response: Int)
 
   /**
     * Returns a [[Props]] object with instantiated [[BaschedRequest]] class.
@@ -265,5 +269,28 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
   def replyTaskDetails(r: DatabaseActor.QueryResult) : Unit = {
     val task = r.result.get.map(listToTask).toList.head
     replyTo ! ReplyTaskDetails(task)
+  }
+
+  /**
+    * Updates the [[Task.status]] of the [[Task]]
+    * @param taskId The [[Task.id]] to update.
+    * @param newStatus The [[Task.status]] to update to.
+    */
+  def requestTaskStatusUpdate(taskId: Int, newStatus: Int) : Unit = {
+    replyTo = sender()
+    handleReply = replyTaskStatusUpdate
+    db ! DatabaseActor.QueryDB(0, s"UPDATE ${Basched.TABLE_NAME_TASKS} SET STATUS=$newStatus " +
+      s"WHERE ID=$taskId", update = true)
+  }
+
+  /**
+    * Handles the reply of the update [[Task.status]].
+    * @param r The [[DatabaseActor.QueryResult]] from the [[DatabaseActor]].
+    */
+  def replyTaskStatusUpdate(r: DatabaseActor.QueryResult) : Unit = {
+    r match {
+      case QueryResult(_, _, _, 0) => replyTo ! ReplyTaskStatusUpdate(BaschedRequest.UPDATED)
+      case _ => replyTo ! ReplyTaskStatusUpdate(BaschedRequest.ERROR)
+    }
   }
 }
