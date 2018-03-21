@@ -150,6 +150,28 @@ class WebServerActor(hostname: String,
           case _ => complete(StatusCodes.NotFound)
         }
       }
+    } ~
+    path ("basched" / "updateTaskWindowIfNeeded") {
+      parameters('taskid) { (taskid) =>
+        val response = sendRequest(BaschedRequest.RequestTaskDetails(taskid.toInt))
+          .mapTo[BaschedRequest.ReplyTaskDetails]
+
+        onSuccess(response) {
+          case BaschedRequest.ReplyTaskDetails(task) =>
+            val windowFinished = (task.pomodoros % Basched.NUM_OF_PMDRS_PER_PRIORITY(task.priority)) == 0
+            if (windowFinished) {
+              val updateResponse = sendRequest(BaschedRequest.RequestTaskStatusUpdate(task.id,
+                Basched.STATUS("WINDOW_FINISHED"))).mapTo[BaschedRequest.ReplyTaskStatusUpdate]
+              onSuccess(updateResponse) {
+                case BaschedRequest.ReplyTaskStatusUpdate(BaschedRequest.UPDATED) => complete(StatusCodes.Created)
+                case _ => complete(StatusCodes.NotFound)
+              }
+            } else {
+              complete(StatusCodes.OK)
+            }
+          case _ => complete(StatusCodes.NotFound)
+        }
+      }
     }
   }
 

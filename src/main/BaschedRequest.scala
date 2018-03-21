@@ -22,6 +22,7 @@ object BaschedRequest {
   val ADDED = 0
   val DUPLICATE = 1
   val ERROR = 2
+  val UPDATED = 3
   case class ReplyAddTask(response: Int) extends Message
 
   case object RequestAllUnfinishedTasks extends Message
@@ -37,6 +38,12 @@ object BaschedRequest {
 
   case class RequestUpdatePmdrCountInTask(taskId: Int, pmdrsToAdd: Int) extends Message
   case class ReplyUpdatePmdrCountInTask(response: Int)
+
+  case class RequestTaskDetails(taskId: Int) extends Message
+  case class ReplyTaskDetails(task: Task)
+
+  case class RequestTaskStatusUpdate(taskid: Int, newStatus: Int) extends Message
+  case class ReplyTaskStatusUpdate(response: Int)
 
   /**
     * Returns a [[Props]] object with instantiated [[BaschedRequest]] class.
@@ -66,6 +73,8 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     case RequestAllUnfinishedTasks => queryAllUnfinishedTasks()
     case RequestUpdatePmdrCountInTask(taskid, pom) => requestUpdatePmdrCount(taskid, pom)
     case req: RequestRemainingTimeInPomodoro => queryRemainingTimeInPomodoro(req.taskId,req.priority)
+    case RequestTaskDetails(taskid) => requestTaskDetails(taskid)
+    case req: RequestTaskStatusUpdate => requestTaskStatusUpdate(req.taskid, req.newStatus)
     case r: DatabaseActor.QueryResult =>
       handleReply(r)
       self ! PoisonPill
@@ -183,12 +192,12 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
   }
 
   /**
-    * Get the [[Task.id]] where the logic of the [[Task.priority]] is the lowest [[Task.pomodoros]] count.
+    * Get the [[Task.id]] where the logic of the [[Task.priority]] is the highest [[Task.pomodoros]] count.
     * @param tasks List of [[Task]]s
     * @return An [[Task.id]] of the selected [[Task]].
     */
   def getOtherPriorityTaskId(tasks: List[Task]) : Option[Int] = {
-    if (tasks.nonEmpty) Some(tasks.minBy(_.pomodoros).id)
+    if (tasks.nonEmpty) Some(tasks.maxBy(_.pomodoros).id)
     else None
   }
 
@@ -241,6 +250,48 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     r match {
       case QueryResult(_, _, _, 0) => replyTo ! ReplyUpdatePmdrCountInTask(BaschedRequest.ADDED)
       case _ => replyTo ! ReplyUpdatePmdrCountInTask(BaschedRequest.ERROR)
+    }
+  }
+
+  /**
+    * Handles the request for the details of a specific task by [[Task.id]]
+    * @param taskid The id of the [[Task]] to query.
+    */
+  def requestTaskDetails(taskid: Int) : Unit = {
+    replyTo = sender()
+    handleReply = replyTaskDetails
+    db ! DatabaseActor.QueryDB(0, s"SELECT * FROM ${Basched.TABLE_NAME_TASKS} WHERE ID = $taskid")
+  }
+
+  /**
+    * Replys to the requestor the queried [[Task]].
+    * @param r The reply from the [[DatabaseActor]].
+    */
+  def replyTaskDetails(r: DatabaseActor.QueryResult) : Unit = {
+    val task = r.result.get.map(listToTask).toList.head
+    replyTo ! ReplyTaskDetails(task)
+  }
+
+  /**
+    * Updates the [[Task.status]] of the [[Task]]
+    * @param taskId The [[Task.id]] to update.
+    * @param newStatus The [[Task.status]] to update to.
+    */
+  def requestTaskStatusUpdate(taskId: Int, newStatus: Int) : Unit = {
+    replyTo = sender()
+    handleReply = replyTaskStatusUpdate
+    db ! DatabaseActor.QueryDB(0, s"UPDATE ${Basched.TABLE_NAME_TASKS} SET STATUS=$newStatus " +
+      s"WHERE ID=$taskId", update = true)
+  }
+
+  /**
+    * Handles the reply of the update [[Task.status]].
+    * @param r The [[DatabaseActor.QueryResult]] from the [[DatabaseActor]].
+    */
+  def replyTaskStatusUpdate(r: DatabaseActor.QueryResult) : Unit = {
+    r match {
+      case QueryResult(_, _, _, 0) => replyTo ! ReplyTaskStatusUpdate(BaschedRequest.UPDATED)
+      case _ => replyTo ! ReplyTaskStatusUpdate(BaschedRequest.ERROR)
     }
   }
 }

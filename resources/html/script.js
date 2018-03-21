@@ -81,6 +81,7 @@ function timerEnds() {
         notifyMe();
         startStopButton(currentTime);
         updatePomodoros(currentTask.id, 1);
+        updateTasksWindow(currentTask.id);
         requestUnfinishedTasks();
         timeEnd = currentTime;
     } else {
@@ -209,5 +210,11 @@ function updatePomodoros(taskid, pomodorosToAdd) {
     xhttp.open("POST",
         "http://localhost:9080/basched/updatePomodorosCount?taskid="+taskid+"&pomodorosToAdd="+pomodorosToAdd,
         true);
+    xhttp.send();
+}
+
+function updateTasksWindow(taskid) {
+    var xhttp = new XMLHttpRequest();
+    xhttp.open("POST", "http://localhost:9080/basched/updateTaskWindowIfNeeded?taskid="+taskid, true);
     xhttp.send();
 }
