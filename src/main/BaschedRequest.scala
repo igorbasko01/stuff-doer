@@ -74,6 +74,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     case RequestUpdatePmdrCountInTask(taskid, pom) => requestUpdatePmdrCount(taskid, pom)
     case req: RequestRemainingTimeInPomodoro => queryRemainingTimeInPomodoro(req.taskId,req.priority)
     case RequestTaskDetails(taskid) => requestTaskDetails(taskid)
+    case req: RequestTaskStatusUpdate => requestTaskStatusUpdate(req.taskid, req.newStatus)
     case r: DatabaseActor.QueryResult =>
       handleReply(r)
       self ! PoisonPill
