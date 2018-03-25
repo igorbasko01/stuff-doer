@@ -46,7 +46,6 @@ function startStopButton(currentTime = new Date().getTime()) {
         btnStart.text("Stop");
     } else {
         stopTimer(currentTime);
-        getRemainingTime(displayTime);
         btnStart.text("Start");
     }
 }
@@ -154,6 +153,7 @@ function handleTasksReply(response) {
     var tasks = JSON.parse(response).tasks;
     var tasksRows = [];
     var current_task = ""
+    currentTask = null;
     for (var i = 0; i < tasks.length; i++) {
         var taskName = tasks[i].name;
         var taskPri = priority[tasks[i].priority];
@@ -164,6 +164,10 @@ function handleTasksReply(response) {
         } else {
             tasksRows.push(html);
         }
+    }
+
+    if (current_task == "") {
+        var current_task = "<tr><td>No tasks to work on...</td><td>Add more tasks, or release some tasks</td></tr>";
     }
 
     var waitingTasks = $("#tasks_table");
@@ -185,10 +189,12 @@ function getRemainingTime(callbackToRun) {
         }
     };
 
-    xhttp.open("GET",
-        "http://localhost:9080/basched/getRemainingPomodoroTime?taskid="+currentTask.id+"&priority="+currentTask.priority,
-        true);
-    xhttp.send();
+    if (currentTask != null) {
+        xhttp.open("GET",
+            "http://localhost:9080/basched/getRemainingPomodoroTime?taskid="+currentTask.id+"&priority="+currentTask.priority,
+            true);
+        xhttp.send();
+    }
 }
 
 function requestUnfinishedTasks() {
