@@ -154,7 +154,8 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     * @return The same list of [[Task]]s, but with one [[Task]] that has the property [[Task.current]] as true.
     */
   def selectCurrentTask(tasks: List[Task]): List[Task] = {
-    val (immTasks, otherTasks) = tasks.partition(_.priority == Basched.PRIORITY("im"))
+    val readyTasks = tasks.filter(_.status == Basched.STATUS("READY"))
+    val (immTasks, otherTasks) = readyTasks.partition(_.priority == Basched.PRIORITY("im"))
     val (highTasks, regTasks) = otherTasks.partition(_.priority == Basched.PRIORITY("hi"))
 
     val selectedId = getImmPriorityTaskId(immTasks) match {
