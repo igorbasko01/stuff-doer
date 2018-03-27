@@ -54,7 +54,7 @@ class WebServerActor(hostname: String,
   val route =
     get {
       pathSingleSlash {
-        complete(s"Welcome to Stuff Doer !")
+        getFromFile("resources/html/index.html")
       } ~
       path("shutdown") {
         self ! WebServerActor.Shutdown
