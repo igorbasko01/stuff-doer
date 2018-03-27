@@ -53,5 +53,5 @@ function handleProjectReply(response) {
 }
 
 function gotoMainPage() {
-    window.location.href = 'http://localhost:9080/html/index.html';
+    window.location.href = 'http://localhost:9080';
 }
