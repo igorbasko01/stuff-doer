@@ -170,9 +170,11 @@ function handleTasksReply(response) {
         var current_task = "<tr><td>No tasks to work on...</td><td>Add more tasks, or release some tasks</td></tr>";
     }
 
-    // TODO: Disable the start/stop task button, when there is no current task. 
+    // No current task selected disable the start task button.
     if (currentTask == null) {
-        var btnStart = $("#startTaskBtn");
+        $("#startTaskBtn").prop('disabled', true);
+    } else {
+        $("#startTaskBtn").prop('disabled', false);
     }
 
     var waitingTasks = $("#tasks_table");
