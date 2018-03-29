@@ -300,6 +300,9 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     }
   }
 
+  /**
+    * Update the [[Task.status]] of all [[Task]]s that are WINDOW_FINISHED to READY.
+    */
   def requestUpdateAllWindowFinishedToReady() : Unit = {
     replyTo = sender()
     handleReply = replyUpdateAllWindowFinishedToReady
@@ -308,6 +311,10 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
       s"WHERE STATUS=${Basched.STATUS("WINDOW_FINISHED")}", update = true)
   }
 
+  /**
+    * Handles the reply of update all WINDOW_FINISHED [[Task.status]]s to READY [[Task.status]]s.
+    * @param r The [[DatabaseActor.QueryResult]].
+    */
   def replyUpdateAllWindowFinishedToReady(r: DatabaseActor.QueryResult) : Unit = {
     r match {
       case QueryResult(_, _, _, 0) => replyTo ! ReplyUpdateAllWindowFinishedToReady(BaschedRequest.UPDATED)
