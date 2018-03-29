@@ -45,6 +45,9 @@ object BaschedRequest {
   case class RequestTaskStatusUpdate(taskid: Int, newStatus: Int) extends Message
   case class ReplyTaskStatusUpdate(response: Int)
 
+  case object RequestUpdateAllWindowFinishedToReady extends Message
+  case class ReplyUpdateAllWindowFinishedToReady(response: Int)
+
   /**
     * Returns a [[Props]] object with instantiated [[BaschedRequest]] class.
     * @param db The [[DatabaseActor]] that the queries will be sent to.
@@ -75,6 +78,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     case req: RequestRemainingTimeInPomodoro => queryRemainingTimeInPomodoro(req.taskId,req.priority)
     case RequestTaskDetails(taskid) => requestTaskDetails(taskid)
     case req: RequestTaskStatusUpdate => requestTaskStatusUpdate(req.taskid, req.newStatus)
+    case RequestUpdateAllWindowFinishedToReady => requestUpdateAllWindowFinishedToReady()
     case r: DatabaseActor.QueryResult =>
       handleReply(r)
       self ! PoisonPill
@@ -293,6 +297,21 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     r match {
       case QueryResult(_, _, _, 0) => replyTo ! ReplyTaskStatusUpdate(BaschedRequest.UPDATED)
       case _ => replyTo ! ReplyTaskStatusUpdate(BaschedRequest.ERROR)
+    }
+  }
+
+  def requestUpdateAllWindowFinishedToReady() : Unit = {
+    replyTo = sender()
+    handleReply = replyUpdateAllWindowFinishedToReady
+
+    db ! DatabaseActor.QueryDB(0, s"UPDATE ${Basched.TABLE_NAME_TASKS} SET STATUS=${Basched.STATUS("READY")} " +
+      s"WHERE STATUS=${Basched.STATUS("WINDOW_FINISHED")}", update = true)
+  }
+
+  def replyUpdateAllWindowFinishedToReady(r: DatabaseActor.QueryResult) : Unit = {
+    r match {
+      case QueryResult(_, _, _, 0) => replyTo ! ReplyUpdateAllWindowFinishedToReady(BaschedRequest.UPDATED)
+      case _ => replyTo ! ReplyUpdateAllWindowFinishedToReady(BaschedRequest.ERROR)
     }
   }
 }
