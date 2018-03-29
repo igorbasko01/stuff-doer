@@ -6,7 +6,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
-import akka.http.scaladsl.server.Directives
+import akka.http.scaladsl.server.{Directives, Route}
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import main.BaschedRequest.{ReplyAddRecord, ReplyAddTask, ReplyAllProjects, ReplyAllUnfinishedTasks}
@@ -95,7 +95,7 @@ class WebServerActor(hostname: String,
       path("basched" / "unfinishedtasks") {
         val response = sendRequest(BaschedRequest.RequestAllUnfinishedTasks).mapTo[ReplyAllUnfinishedTasks]
         onSuccess(response) {
-          case ReplyAllUnfinishedTasks(tasks) => complete(Tasks(tasks))
+          case ReplyAllUnfinishedTasks(tasks) => handleUnfinishedTasks(tasks)
           case other => complete(HttpResponse(StatusCodes.NotFound,Nil,
             HttpEntity(ContentTypes.`text/plain(UTF-8)`,s"Could not get any tasks: $other")))
         }
@@ -199,5 +199,15 @@ class WebServerActor(hostname: String,
 
   override def receive: Receive = {
     case WebServerActor.Shutdown => context.stop(self)
+  }
+
+  def handleUnfinishedTasks(tasks: List[BaschedRequest.Task]) : Route = {
+    if (tasks.contains(BaschedRequest.Task(_, _, _, _, _, Basched.STATUS("READY"), _, _)))
+      complete(Tasks(tasks))
+    else {
+      // TODO: Update all the WINDOW_FINISHED tasks into READY tasks.
+      // TODO: And then return all the tasks with one selected.
+      complete(Tasks(tasks))
+    }
   }
 }
