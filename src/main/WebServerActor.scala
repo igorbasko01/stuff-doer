@@ -203,11 +203,26 @@ class WebServerActor(hostname: String,
 
   def handleUnfinishedTasks(tasks: List[BaschedRequest.Task]) : Route = {
     if (tasks.contains(BaschedRequest.Task(_, _, _, _, _, Basched.STATUS("READY"), _, _)))
+    // If have any tasks in ready status, than there should be a current task selected.
+    // so just return all the tasks to the client.
       complete(Tasks(tasks))
     else {
-      // TODO: Update all the WINDOW_FINISHED tasks into READY tasks.
-      // TODO: And then return all the tasks with one selected.
-      complete(Tasks(tasks))
+      // Otherwise, there are no READY tasks, so try and convert all the WINDOW_FINISHED tasks into READY tasks.
+      val response = sendRequest(BaschedRequest.RequestUpdateAllWindowFinishedToReady)
+        .mapTo[BaschedRequest.ReplyUpdateAllWindowFinishedToReady]
+
+      // Then if everything is ok, return all the tasks. There should be some current task if at least one task was
+      // converted to READY.
+      onSuccess(response) {
+        case BaschedRequest.ReplyUpdateAllWindowFinishedToReady(BaschedRequest.UPDATED) =>
+          val resp_unf = sendRequest(BaschedRequest.RequestAllUnfinishedTasks)
+            .mapTo[BaschedRequest.ReplyAllUnfinishedTasks]
+          onSuccess(resp_unf) {
+            case ReplyAllUnfinishedTasks(unf_tasks) => complete(Tasks(unf_tasks))
+            case _ => complete(StatusCodes.NotFound)
+          }
+        case _ => complete(StatusCodes.NotFound)
+      }
     }
   }
 }
