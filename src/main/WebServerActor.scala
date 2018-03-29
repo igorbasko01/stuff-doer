@@ -202,7 +202,7 @@ class WebServerActor(hostname: String,
   }
 
   def handleUnfinishedTasks(tasks: List[BaschedRequest.Task]) : Route = {
-    if (tasks.contains(BaschedRequest.Task(_, _, _, _, _, Basched.STATUS("READY"), _, _)))
+    if (tasks.exists(_.status == Basched.STATUS("READY")))
     // If have any tasks in ready status, than there should be a current task selected.
     // so just return all the tasks to the client.
       complete(Tasks(tasks))
