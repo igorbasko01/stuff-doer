@@ -172,6 +172,17 @@ class WebServerActor(hostname: String,
           case _ => complete(StatusCodes.NotFound)
         }
       }
+    } ~
+    path("basched" / "finishTask") {
+      parameters('taskid) { (taskid) =>
+        val response = sendRequest(BaschedRequest.RequestTaskStatusUpdate(taskid.toInt,Basched.STATUS("FINISHED")))
+          .mapTo[BaschedRequest.ReplyTaskStatusUpdate]
+
+        onSuccess(response) {
+          case BaschedRequest.ReplyTaskStatusUpdate(BaschedRequest.UPDATED) => complete(StatusCodes.Created)
+          case _ => complete(StatusCodes.NotFound)
+        }
+      }
     }
   }
 
