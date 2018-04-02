@@ -17,7 +17,7 @@ object Basched {
   val PRIORITY = Map("im" -> 0, "hi" -> 1, "re" -> 2)
   val STATUS = Map("READY" -> 0, "WINDOW_FINISHED" -> 1, "ON_HOLD" -> 2, "FINISHED" -> 3)
   val NUM_OF_PMDRS_PER_PRIORITY = Map(PRIORITY("im") -> 0, PRIORITY("hi") -> 8, PRIORITY("re") -> 4)
-  val POMODORO_MAX_DURATION_MS = 15000 //25 * 60 * 1000
+  val POMODORO_MAX_DURATION_MS = 25 * 60 * 1000
 
   /**
     * Returns a [[Props]] object with an instantiated [[Basched]] class.

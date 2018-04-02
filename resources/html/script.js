@@ -157,7 +157,8 @@ function handleTasksReply(response) {
     for (var i = 0; i < tasks.length; i++) {
         var taskName = tasks[i].name;
         var taskPri = priority[tasks[i].priority];
-        var html = "<tr><td>"+taskName+"</td><td>"+taskPri+"</td></tr>"
+        var button_finished = "<button id=finished_"+i+" onclick=finishTask("+i+")>FINISH</button>";
+        var html = "<tr><td>"+taskName+"</td><td>"+taskPri+"</td><td>"+button_finished+"</td></tr>";
         if (tasks[i].current == true) {
             current_task = html;
             currentTask = tasks[i];
