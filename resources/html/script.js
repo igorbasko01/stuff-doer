@@ -157,7 +157,7 @@ function handleTasksReply(response) {
     for (var i = 0; i < tasks.length; i++) {
         var taskName = tasks[i].name;
         var taskPri = priority[tasks[i].priority];
-        var button_finished = "<button id=finished_"+i+" onclick=finishTask("+i+")>FINISH</button>";
+        var button_finished = "<button id=finished_"+tasks[i].id+" onclick=finishTask("+tasks[i].id+")>FINISH</button>";
         var html = "<tr><td>"+taskName+"</td><td>"+taskPri+"</td><td>"+button_finished+"</td></tr>";
         if (tasks[i].current == true) {
             current_task = html;
@@ -230,5 +230,11 @@ function updatePomodoros(taskid, pomodorosToAdd) {
 function updateTasksWindow(taskid) {
     var xhttp = new XMLHttpRequest();
     xhttp.open("POST", "http://localhost:9080/basched/updateTaskWindowIfNeeded?taskid="+taskid, true);
+    xhttp.send();
+}
+
+function finishTask(id) {
+    var xhttp = new XMLHttpRequest();
+    xhttp.open("POST", "http://localhost:9080/basched/finishTask?taskid="+id, true);
     xhttp.send();
 }
