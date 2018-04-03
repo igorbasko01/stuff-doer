@@ -38,7 +38,7 @@ function notifyMe() {
 
 }
 
-function startStopButton(currentTime = new Date().getTime()) {
+function toggleStartStopButton(currentTime = new Date().getTime()) {
     var btnStart = $("#startTaskBtn");
     var btnState = btnStart.text();
     if (btnState == "Start") {
@@ -48,6 +48,16 @@ function startStopButton(currentTime = new Date().getTime()) {
         stopTimer(currentTime);
         btnStart.text("Start");
     }
+}
+
+function setStartStopButtonState(newState) {
+    var btnStart = $("#startTaskBtn");
+    var btnState = btnStart.text();
+    // If the states are equal it means that currently the button displays the state that we want to change to.
+    // For example, currently the text of the button is "Stop" because the task is running, and we want to go to
+    // "Stop" state, so it has the same text.
+    if (btnState == newState)
+        toggleStartStopButton();
 }
 
 function startTimer() {
@@ -78,7 +88,7 @@ function timerEnds() {
     var currentTime = new Date().getTime();
     if (currentTime > timeEnd) {
         notifyMe();
-        startStopButton(currentTime);
+        toggleStartStopButton(currentTime);
         updatePomodoros(currentTask.id, 1);
         updateTasksWindow(currentTask.id);
         requestUnfinishedTasks();
@@ -234,6 +244,7 @@ function updateTasksWindow(taskid) {
 }
 
 function finishTask(id) {
+    setStartStopButtonState("Stop");
     var xhttp = new XMLHttpRequest();
     xhttp.open("POST", "http://localhost:9080/basched/finishTask?taskid="+id, true);
     xhttp.send();
