@@ -38,7 +38,7 @@ function notifyMe() {
 
 }
 
-function startStopButton(currentTime = new Date().getTime()) {
+function toggleStartStopButton(currentTime = new Date().getTime()) {
     var btnStart = $("#startTaskBtn");
     var btnState = btnStart.text();
     if (btnState == "Start") {
@@ -48,6 +48,16 @@ function startStopButton(currentTime = new Date().getTime()) {
         stopTimer(currentTime);
         btnStart.text("Start");
     }
+}
+
+function setStartStopButtonState(newState) {
+    var btnStart = $("#startTaskBtn");
+    var btnState = btnStart.text();
+    // If the states are equal it means that currently the button displays the state that we want to change to.
+    // For example, currently the text of the button is "Stop" because the task is running, and we want to go to
+    // "Stop" state, so it has the same text.
+    if (btnState == newState)
+        toggleStartStopButton();
 }
 
 function startTimer() {
@@ -78,7 +88,7 @@ function timerEnds() {
     var currentTime = new Date().getTime();
     if (currentTime > timeEnd) {
         notifyMe();
-        startStopButton(currentTime);
+        toggleStartStopButton(currentTime);
         updatePomodoros(currentTask.id, 1);
         updateTasksWindow(currentTask.id);
         requestUnfinishedTasks();
@@ -157,7 +167,8 @@ function handleTasksReply(response) {
     for (var i = 0; i < tasks.length; i++) {
         var taskName = tasks[i].name;
         var taskPri = priority[tasks[i].priority];
-        var html = "<tr><td>"+taskName+"</td><td>"+taskPri+"</td></tr>"
+        var button_finished = "<button id=finished_"+tasks[i].id+" onclick=finishTask("+tasks[i].id+")>FINISH</button>";
+        var html = "<tr><td>"+taskName+"</td><td>"+taskPri+"</td><td>"+button_finished+"</td></tr>";
         if (tasks[i].current == true) {
             current_task = html;
             currentTask = tasks[i];
@@ -170,9 +181,11 @@ function handleTasksReply(response) {
         var current_task = "<tr><td>No tasks to work on...</td><td>Add more tasks, or release some tasks</td></tr>";
     }
 
-    // TODO: Disable the start/stop task button, when there is no current task. 
+    // No current task selected disable the start task button.
     if (currentTask == null) {
-        var btnStart = $("#startTaskBtn");
+        $("#startTaskBtn").prop('disabled', true);
+    } else {
+        $("#startTaskBtn").prop('disabled', false);
     }
 
     var waitingTasks = $("#tasks_table");
@@ -227,5 +240,20 @@ function updatePomodoros(taskid, pomodorosToAdd) {
 function updateTasksWindow(taskid) {
     var xhttp = new XMLHttpRequest();
     xhttp.open("POST", "http://localhost:9080/basched/updateTaskWindowIfNeeded?taskid="+taskid, true);
+    xhttp.send();
+}
+
+function finishTask(id) {
+    // Stop the timer if the current task was chosen to finish.
+    if (id == currentTask.id)
+        setStartStopButtonState("Stop");
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 201) {
+              requestUnfinishedTasks();
+          }
+        };
+    xhttp.open("POST", "http://localhost:9080/basched/finishTask?taskid="+id, true);
     xhttp.send();
 }

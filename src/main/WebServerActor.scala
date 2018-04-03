@@ -6,7 +6,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
-import akka.http.scaladsl.server.Directives
+import akka.http.scaladsl.server.{Directives, Route}
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import main.BaschedRequest.{ReplyAddRecord, ReplyAddTask, ReplyAllProjects, ReplyAllUnfinishedTasks}
@@ -95,7 +95,7 @@ class WebServerActor(hostname: String,
       path("basched" / "unfinishedtasks") {
         val response = sendRequest(BaschedRequest.RequestAllUnfinishedTasks).mapTo[ReplyAllUnfinishedTasks]
         onSuccess(response) {
-          case ReplyAllUnfinishedTasks(tasks) => complete(Tasks(tasks))
+          case ReplyAllUnfinishedTasks(tasks) => handleUnfinishedTasks(tasks)
           case other => complete(HttpResponse(StatusCodes.NotFound,Nil,
             HttpEntity(ContentTypes.`text/plain(UTF-8)`,s"Could not get any tasks: $other")))
         }
@@ -172,6 +172,17 @@ class WebServerActor(hostname: String,
           case _ => complete(StatusCodes.NotFound)
         }
       }
+    } ~
+    path("basched" / "finishTask") {
+      parameters('taskid) { (taskid) =>
+        val response = sendRequest(BaschedRequest.RequestTaskStatusUpdate(taskid.toInt,Basched.STATUS("FINISHED")))
+          .mapTo[BaschedRequest.ReplyTaskStatusUpdate]
+
+        onSuccess(response) {
+          case BaschedRequest.ReplyTaskStatusUpdate(BaschedRequest.UPDATED) => complete(StatusCodes.Created)
+          case _ => complete(StatusCodes.NotFound)
+        }
+      }
     }
   }
 
@@ -199,5 +210,30 @@ class WebServerActor(hostname: String,
 
   override def receive: Receive = {
     case WebServerActor.Shutdown => context.stop(self)
+  }
+
+  def handleUnfinishedTasks(tasks: List[BaschedRequest.Task]) : Route = {
+    if (tasks.exists(_.status == Basched.STATUS("READY")))
+    // If have any tasks in ready status, than there should be a current task selected.
+    // so just return all the tasks to the client.
+      complete(Tasks(tasks))
+    else {
+      // Otherwise, there are no READY tasks, so try and convert all the WINDOW_FINISHED tasks into READY tasks.
+      val response = sendRequest(BaschedRequest.RequestUpdateAllWindowFinishedToReady)
+        .mapTo[BaschedRequest.ReplyUpdateAllWindowFinishedToReady]
+
+      // Then if everything is ok, return all the tasks. There should be some current task if at least one task was
+      // converted to READY.
+      onSuccess(response) {
+        case BaschedRequest.ReplyUpdateAllWindowFinishedToReady(BaschedRequest.UPDATED) =>
+          val resp_unf = sendRequest(BaschedRequest.RequestAllUnfinishedTasks)
+            .mapTo[BaschedRequest.ReplyAllUnfinishedTasks]
+          onSuccess(resp_unf) {
+            case ReplyAllUnfinishedTasks(unf_tasks) => complete(Tasks(unf_tasks))
+            case _ => complete(StatusCodes.NotFound)
+          }
+        case _ => complete(StatusCodes.NotFound)
+      }
+    }
   }
 }
