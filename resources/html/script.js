@@ -245,7 +245,7 @@ function updateTasksWindow(taskid) {
 
 function finishTask(id) {
     // Stop the timer if the current task was chosen to finish.
-    if (id == currentTask.id)
+    if (currentTask != null && id == currentTask.id)
         setStartStopButtonState("Stop");
 
     var xhttp = new XMLHttpRequest();
