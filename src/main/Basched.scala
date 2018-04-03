@@ -15,7 +15,8 @@ object Basched {
   val TABLE_NAME_PROJECTS = "projects"
 
   val PRIORITY = Map("im" -> 0, "hi" -> 1, "re" -> 2)
-  val STATUS = Map("READY" -> 0, "WINDOW_FINISHED" -> 1, "ON_HOLD" -> 2, "FINISHED" -> 3)
+  val STATUS = Map("READY" -> 0, "WINDOW_FINISHED" -> 1, "ON_HOLD_WINDOW_FINISHED" -> 2, "ON_HOLD_READY" -> 3,
+    "FINISHED" -> 4)
   val NUM_OF_PMDRS_PER_PRIORITY = Map(PRIORITY("im") -> 0, PRIORITY("hi") -> 8, PRIORITY("re") -> 4)
   val POMODORO_MAX_DURATION_MS = 25 * 60 * 1000
 
