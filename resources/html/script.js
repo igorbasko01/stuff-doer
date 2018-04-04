@@ -154,6 +154,11 @@ function gotoAddTaskPage() {
     window.location.href = 'http://localhost:9080/html/AddTask.html';
 }
 
+function createHoldButton(task) {
+    var buttonText = (task.status == 0 || task.status == 1) ? "HOLD" : "RELEASE";
+    return "<button id=hold_"+task.id+" onclick=toggleHold("+task.id+")>"+buttonText+"</button>";
+}
+
 function handleTasksReply(response) {
     console.log("Unfinished task reply handling now.")
     $("#tasks_table tr").remove();
@@ -168,7 +173,8 @@ function handleTasksReply(response) {
         var taskName = tasks[i].name;
         var taskPri = priority[tasks[i].priority];
         var button_finished = "<button id=finished_"+tasks[i].id+" onclick=finishTask("+tasks[i].id+")>FINISH</button>";
-        var html = "<tr><td>"+taskName+"</td><td>"+taskPri+"</td><td>"+button_finished+"</td></tr>";
+        var button_hold = createHoldButton(tasks[i]);
+        var html = "<tr><td>"+taskName+"</td><td>"+taskPri+"</td><td>"+button_finished+"</td><td>"+button_hold+"</td></tr>";
         if (tasks[i].current == true) {
             current_task = html;
             currentTask = tasks[i];
