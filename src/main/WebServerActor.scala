@@ -183,6 +183,25 @@ class WebServerActor(hostname: String,
           case _ => complete(StatusCodes.NotFound)
         }
       }
+    } ~
+    path("basched" / "toggleHold") {
+      parameters('taskid) { (taskid) =>
+        val response = sendRequest(BaschedRequest.RequestTaskDetails(taskid.toInt))
+          .mapTo[BaschedRequest.ReplyTaskDetails]
+
+        onSuccess(response) {
+          case BaschedRequest.ReplyTaskDetails(task) =>
+            val updateToStatus = toggleHoldStatus(task.status)
+            val updateResponse = sendRequest(BaschedRequest.RequestTaskStatusUpdate(task.id,
+              updateToStatus)).mapTo[BaschedRequest.ReplyTaskStatusUpdate]
+
+            onSuccess(updateResponse) {
+              case BaschedRequest.ReplyTaskStatusUpdate(BaschedRequest.UPDATED) => complete(StatusCodes.Created)
+              case _ => complete(StatusCodes.NotFound)
+            }
+          case _ => complete(StatusCodes.NotFound)
+        }
+      }
     }
   }
 
@@ -234,6 +253,20 @@ class WebServerActor(hostname: String,
           }
         case _ => complete(StatusCodes.NotFound)
       }
+    }
+  }
+
+  /**
+    * Toggle task statuses.
+    * @param status Current [[BaschedRequest.Task.status]] of the [[BaschedRequest.Task]].
+    * @return New status.
+    */
+  def toggleHoldStatus(status: Int) : Int = {
+    status match {
+      case x: Int if x == Basched.STATUS("READY") => Basched.STATUS("ON_HOLD_READY")
+      case x: Int if x == Basched.STATUS("WINDOW_FINISHED") => Basched.STATUS("ON_HOLD_WINDOW_FINISHED")
+      case x: Int if x == Basched.STATUS("ON_HOLD_READY") => Basched.STATUS("READY")
+      case x: Int if x == Basched.STATUS("ON_HOLD_WINDOW_FINISHED") => Basched.STATUS("WINDOW_FINISHED")
     }
   }
 }

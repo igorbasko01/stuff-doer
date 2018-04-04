@@ -159,6 +159,21 @@ function createHoldButton(task) {
     return "<button id=hold_"+task.id+" onclick=toggleHold("+task.id+")>"+buttonText+"</button>";
 }
 
+function toggleHold(id) {
+    // Stop the timer if the current task was chosen to hold.
+    if (currentTask != null && id == currentTask.id)
+        setStartStopButtonState("Stop");
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 201) {
+              requestUnfinishedTasks();
+        }
+    };
+    xhttp.open("POST", "http://localhost:9080/basched/toggleHold?taskid="+id, true);
+    xhttp.send();
+}
+
 function handleTasksReply(response) {
     console.log("Unfinished task reply handling now.")
     $("#tasks_table tr").remove();
