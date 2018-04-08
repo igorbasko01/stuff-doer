@@ -33,6 +33,9 @@ object BaschedRequest {
   case class RequestAddRecord(taskId: Int, endTimestamp: Long, duration: Long) extends Message
   case class ReplyAddRecord(response: Int)
 
+  case class RequestAddProject(projectName: String) extends Message
+  case class ReplyAddProject(response: Int)
+
   case class RequestRemainingTimeInPomodoro(taskId: Int, priority: Int) extends Message
   case class ReplyRemainingTimeInPomodoro(duration: Long)
 
@@ -73,6 +76,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     case RequestAllProjects => queryGetAllProjects()
     case addTask: AddTask => addNewTask(addTask)
     case addRecord: RequestAddRecord => addNewRecord(addRecord)
+    case RequestAddProject(prjName) => requestAddProject(prjName)
     case RequestAllUnfinishedTasks => queryAllUnfinishedTasks()
     case RequestUpdatePmdrCountInTask(taskid, pom) => requestUpdatePmdrCount(taskid, pom)
     case req: RequestRemainingTimeInPomodoro => queryRemainingTimeInPomodoro(req.taskId,req.priority)
@@ -127,6 +131,21 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
       case QueryResult(_, _, _, 0) => replyTo ! ReplyAddRecord(BaschedRequest.ADDED)
       case QueryResult(_, _, _, 23505) => replyTo ! ReplyAddRecord(BaschedRequest.DUPLICATE)
       case _ => replyTo ! ReplyAddRecord(BaschedRequest.ERROR)
+    }
+  }
+
+  def requestAddProject(projectName: String) : Unit = {
+    replyTo = sender()
+    handleReply = replyAddProject
+    db ! DatabaseActor.QueryDB(0, s"INSERT INTO ${Basched.TABLE_NAME_PROJECTS} (NAME) VALUES ('$projectName')",
+      update = true)
+  }
+
+  def replyAddProject(r: DatabaseActor.QueryResult) : Unit = {
+    r match {
+      case QueryResult(_, _, _, 0) => replyTo ! ReplyAddProject(BaschedRequest.ADDED)
+      case QueryResult(_, _, _, 23505) => replyTo ! ReplyAddProject(BaschedRequest.DUPLICATE)
+      case _ => replyTo ! ReplyAddProject(BaschedRequest.ERROR)
     }
   }
 

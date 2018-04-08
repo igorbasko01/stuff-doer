@@ -42,7 +42,7 @@ function addProject() {
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function() {
             if (this.readyState == 4 && this.status == 201) {
-                $("#message").text("Project ["+project_input.val()+"] was added.");
+                $("#message").text("Project ["+project_input+"] was added.");
             } else if (this.readyState == 4 && this.status == 409) {
                 $("#message").text("Could not add project, reason: Project already exists !");
             } else {
@@ -50,7 +50,7 @@ function addProject() {
             }
         };
 
-        xhttp.open("POST", "http://localhost:9080/basched/addProject?prjName="+project_input);
+        xhttp.open("POST", "http://localhost:9080/basched/addProject?projectName="+project_input);
         xhttp.send();
     } else {
         $("#message").text("The project name is empty.");

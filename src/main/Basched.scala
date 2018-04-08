@@ -106,8 +106,8 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
     s")"
 
   private def createStmtProjectsTable = s"CREATE TABLE $TABLE_NAME_PROJECTS (" +
-    s"ID INT UNIQUE, " +
-    s"NAME VARCHAR(255)" +
+    s"ID INT AUTO_INCREMENT, " +
+    s"NAME VARCHAR(255) UNIQUE" +
     s")"+";"+insertDefaultProject()
 
   private def insertDefaultProject() = s"INSERT INTO $TABLE_NAME_PROJECTS (ID, NAME) VALUES (1, \'DEFAULT\')"

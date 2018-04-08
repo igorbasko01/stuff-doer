@@ -9,7 +9,7 @@ import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusC
 import akka.http.scaladsl.server.{Directives, Route}
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import main.BaschedRequest.{ReplyAddRecord, ReplyAddTask, ReplyAllProjects, ReplyAllUnfinishedTasks}
+import main.BaschedRequest._
 import main.DatabaseActor.QueryResult
 import spray.json._
 
@@ -136,6 +136,17 @@ class WebServerActor(hostname: String,
         onSuccess(response) {
           case ReplyAddRecord(BaschedRequest.ADDED) => complete(StatusCodes.Created)
           case ReplyAddRecord(BaschedRequest.DUPLICATE) => complete(StatusCodes.Conflict)
+          case _ => complete(StatusCodes.NotFound)
+        }
+      }
+    } ~
+    path ("basched" / "addProject") {
+      parameters('projectName) { (projectName) =>
+        val response = sendRequest(BaschedRequest.RequestAddProject(projectName)).mapTo[BaschedRequest.ReplyAddProject]
+
+        onSuccess(response) {
+          case ReplyAddProject(BaschedRequest.ADDED) => complete(StatusCodes.Created)
+          case ReplyAddProject(BaschedRequest.DUPLICATE) => complete(StatusCodes.Conflict)
           case _ => complete(StatusCodes.NotFound)
         }
       }
