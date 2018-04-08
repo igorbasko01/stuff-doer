@@ -36,6 +36,28 @@ function addTask() {
     }
 }
 
+function addProject() {
+    var project_input = $("#project_name").val().trim();
+    if (project_input != "") {
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 201) {
+                $("#message").text("Project ["+project_input.val()+"] was added.");
+            } else if (this.readyState == 4 && this.status == 409) {
+                $("#message").text("Could not add project, reason: Project already exists !");
+            } else {
+                $("#message").text("Could not add project, reason: Something is wrong !!!");
+            }
+        };
+
+        xhttp.open("POST", "http://localhost:9080/basched/addProject?prjName="+project_input);
+        xhttp.send();
+    } else {
+        $("#message").text("The project name is empty.");
+        $("#project_name").val("");
+    }
+}
+
 /**
 Parses the all projects reply and adds the projects to the project <select> element.
 */
