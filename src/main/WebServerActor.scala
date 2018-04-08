@@ -114,6 +114,9 @@ class WebServerActor(hostname: String,
       } ~
       pathPrefix("html") {
         getFromDirectory("resources/html")
+      } ~
+      pathPrefix("resources" / "mp3") {
+        getFromDirectory("resources/mp3")
       }
     } ~
   post {
