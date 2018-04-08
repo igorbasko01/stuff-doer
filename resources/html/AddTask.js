@@ -1,14 +1,6 @@
 // Get all the available projects, and display them in the drop down box.
 document.addEventListener('DOMContentLoaded', function () {
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-            handleProjectReply(this.responseText);
-        }
-    };
-
-    xhttp.open("GET", "http://localhost:9080/basched/allprojects", true);
-    xhttp.send();
+    requestAllProjects();
 });
 
 function addTask() {
@@ -43,6 +35,7 @@ function addProject() {
         xhttp.onreadystatechange = function() {
             if (this.readyState == 4 && this.status == 201) {
                 $("#message").text("Project ["+project_input+"] was added.");
+                requestAllProjects();
             } else if (this.readyState == 4 && this.status == 409) {
                 $("#message").text("Could not add project, reason: Project already exists !");
             } else {
@@ -62,6 +55,7 @@ function addProject() {
 Parses the all projects reply and adds the projects to the project <select> element.
 */
 function handleProjectReply(response) {
+    $("#project option").remove();
     var projects = JSON.parse(response).projects;
     var projectOpts = [];
     for (var i = 0; i < projects.length; i++) {
@@ -76,4 +70,16 @@ function handleProjectReply(response) {
 
 function gotoMainPage() {
     window.location.href = 'http://localhost:9080';
+}
+
+function requestAllProjects() {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            handleProjectReply(this.responseText);
+        }
+    };
+
+    xhttp.open("GET", "http://localhost:9080/basched/allprojects", true);
+    xhttp.send();
 }
