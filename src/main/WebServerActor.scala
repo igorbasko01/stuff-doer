@@ -24,7 +24,7 @@ final case class Projects(projects: List[BaschedRequest.Project])
 final case class PomodoroDuration(duration: Long)
 
 trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
-  implicit val taskFormat = jsonFormat8(BaschedRequest.Task)
+  implicit val taskFormat = jsonFormat9(BaschedRequest.Task)
   implicit val tasksFormat = jsonFormat1(Tasks)
 
   implicit val projFormat = jsonFormat2(BaschedRequest.Project)

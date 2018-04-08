@@ -178,18 +178,20 @@ function handleTasksReply(response) {
     console.log("Unfinished task reply handling now.")
     $("#tasks_table tr").remove();
     $("#current_task tr").remove();
-    $("#current_task").append("<tr><th>Current Task</th><th>Priority</th></tr>}");
-    $("#tasks_table").append("<tr><th>Other Tasks</th><th>Priority</th></tr>")
+    $("#current_task").append("<tr><th>Project</th><th>Current Task</th><th>Priority</th></tr>}");
+    $("#tasks_table").append("<tr><th>Project</th><th>Other Tasks</th><th>Priority</th></tr>")
     var tasks = JSON.parse(response).tasks;
     var tasksRows = [];
     var current_task = ""
     currentTask = null;
     for (var i = 0; i < tasks.length; i++) {
         var taskName = tasks[i].name;
+        var prjName = tasks[i].prjName;
         var taskPri = priority[tasks[i].priority];
         var button_finished = "<button id=finished_"+tasks[i].id+" onclick=finishTask("+tasks[i].id+")>FINISH</button>";
         var button_hold = createHoldButton(tasks[i]);
-        var html = "<tr><td>"+taskName+"</td><td>"+taskPri+"</td><td>"+button_finished+"</td><td>"+button_hold+"</td></tr>";
+        var html = "<tr><td>"+prjName+"</td><td>"+taskName+"</td><td>"+taskPri+"</td><td>"+button_finished+"</td><td>"+
+            button_hold+"</td></tr>";
         if (tasks[i].current == true) {
             current_task = html;
             currentTask = tasks[i];

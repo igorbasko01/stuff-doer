@@ -26,7 +26,7 @@ object BaschedRequest {
   case class ReplyAddTask(response: Int) extends Message
 
   case object RequestAllUnfinishedTasks extends Message
-  case class Task(id: Int, prjId: Int, name: String, startTimestamp: String, priority: Int, status: Int,
+  case class Task(id: Int, prjId: Int, prjName: String, name: String, startTimestamp: String, priority: Int, status: Int,
                   pomodoros: Int, current: Boolean)
   case class ReplyAllUnfinishedTasks(tasks: List[Task])
 
@@ -152,7 +152,10 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
   def queryAllUnfinishedTasks(): Unit = {
     replyTo = sender()
     handleReply = replyAllUnfinishedTasks
-    db ! DatabaseActor.QueryDB(0, s"SELECT * FROM ${Basched.TABLE_NAME_TASKS} WHERE STATUS != ${Basched.STATUS("FINISHED")}")
+    db ! DatabaseActor.QueryDB(0, s"SELECT t.ID, t.PRJID, p.NAME, t.NAME, t.START, t.PRIORITY, t.STATUS, t.POMODOROS " +
+      s"FROM ${Basched.TABLE_NAME_TASKS} t JOIN ${Basched.TABLE_NAME_PROJECTS} p " +
+      s"ON t.PRJID = p.ID " +
+      s" WHERE t.STATUS != ${Basched.STATUS("FINISHED")}")
   }
 
   def replyAllUnfinishedTasks(r: DatabaseActor.QueryResult): Unit = {
@@ -167,8 +170,8 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     * @return [[Task]] object.
     */
   def listToTask(taskAsList: List[String]) : Task = {
-    Task(taskAsList.head.toInt,taskAsList(1).toInt,taskAsList(2),
-      taskAsList(3),taskAsList(4).toInt,taskAsList(5).toInt,taskAsList(6).toInt, current = false)
+    Task(taskAsList(0).toInt, taskAsList(1).toInt, taskAsList(2), taskAsList(3), taskAsList(4), taskAsList(5).toInt,
+      taskAsList(6).toInt, taskAsList(7).toInt, current = false)
   }
 
   /**
@@ -195,7 +198,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     val tasksWithSelected = tasks.map(task => {
       val isCurrentTask = if (selectedId.isDefined && selectedId.get == task.id) true else false
 
-      Task(task.id,task.prjId,task.name,task.startTimestamp,task.priority,task.status,task.pomodoros, isCurrentTask)
+      Task(task.id,task.prjId,task.prjName,task.name,task.startTimestamp,task.priority,task.status,task.pomodoros, isCurrentTask)
     })
 
     tasksWithSelected
