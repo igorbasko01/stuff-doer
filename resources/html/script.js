@@ -116,11 +116,6 @@ function handleCommitInterval(currentTime) {
 
 // It means that it adds a row to the RECORDS table.
 function commitRecord(currentTime) {
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        handleRecordCommitResponse(this);
-    };
-
 
     var taskid = currentTask.id;
     var timestamp = currentTime;
@@ -128,10 +123,13 @@ function commitRecord(currentTime) {
     // The max length of an interval without the part of the time that passed.
     var duration = intervalToUpdate_ms - Math.max(0, intervalEnd - currentTime);
     var roundedDuration = Math.round(duration/1000)*1000;
-    xhttp.open("POST",
-        "http://localhost:9080/basched/addRecord?taskid="+taskid+"&timestamp="+timestamp+"&duration="+roundedDuration,
-        true);
-    xhttp.send();
+
+    makeRequest('POST',
+        "http://localhost:9080/basched/addRecord?taskid="+taskid+"&timestamp="+timestamp+"&duration="+roundedDuration)
+        .then(handleRecordCommitResponse)
+        .catch(function (err) {
+            console.error('An error occurred !', err.statusText);
+        });
 }
 
 function handleRecordCommitResponse(responseObject) {
@@ -289,7 +287,7 @@ function makeRequest(method, url) {
         var xhr = new XMLHttpRequest();
         xhr.open(method, url);
         xhr.onload = function() {
-            resolve(xhr.response);
+            resolve(xhr);
         };
         xhr.onerror = function() {
             reject({
