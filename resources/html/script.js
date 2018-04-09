@@ -283,3 +283,20 @@ function finishTask(id) {
     xhttp.open("POST", "http://localhost:9080/basched/finishTask?taskid="+id, true);
     xhttp.send();
 }
+
+function makeRequest(method, url) {
+    return new Promise(function (resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open(method, url);
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+        xhr.onerror = function() {
+            reject({
+                status: this.status,
+                statusText: xhr.statusText
+            });
+        };
+        xhr.send();
+    });
+}
