@@ -18,11 +18,12 @@
     <select id="priority">
         <option value="im">Immediate</option>
         <option value="hi">High</option>
-        <option value="re">Regular</option>
+        <option value="re" selected>Regular</option>
     </select>
     <input type="submit" value="Add">
 </form>
 <p id="message" align="center"></p>
-<button onclick="gotoMainPage()">Main Page</button>
+New Project:<input id="project_name" type="text" maxlength="254"><button onclick="addProject()">Add Project</button>
+<br><button onclick="gotoMainPage()">Main Page</button>
 </body>
 </html>

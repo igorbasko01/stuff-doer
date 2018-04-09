@@ -9,7 +9,7 @@ import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusC
 import akka.http.scaladsl.server.{Directives, Route}
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import main.BaschedRequest.{ReplyAddRecord, ReplyAddTask, ReplyAllProjects, ReplyAllUnfinishedTasks}
+import main.BaschedRequest._
 import main.DatabaseActor.QueryResult
 import spray.json._
 
@@ -24,7 +24,7 @@ final case class Projects(projects: List[BaschedRequest.Project])
 final case class PomodoroDuration(duration: Long)
 
 trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
-  implicit val taskFormat = jsonFormat8(BaschedRequest.Task)
+  implicit val taskFormat = jsonFormat9(BaschedRequest.Task)
   implicit val tasksFormat = jsonFormat1(Tasks)
 
   implicit val projFormat = jsonFormat2(BaschedRequest.Project)
@@ -114,6 +114,9 @@ class WebServerActor(hostname: String,
       } ~
       pathPrefix("html") {
         getFromDirectory("resources/html")
+      } ~
+      pathPrefix("resources" / "mp3") {
+        getFromDirectory("resources/mp3")
       }
     } ~
   post {
@@ -136,6 +139,17 @@ class WebServerActor(hostname: String,
         onSuccess(response) {
           case ReplyAddRecord(BaschedRequest.ADDED) => complete(StatusCodes.Created)
           case ReplyAddRecord(BaschedRequest.DUPLICATE) => complete(StatusCodes.Conflict)
+          case _ => complete(StatusCodes.NotFound)
+        }
+      }
+    } ~
+    path ("basched" / "addProject") {
+      parameters('projectName) { (projectName) =>
+        val response = sendRequest(BaschedRequest.RequestAddProject(projectName)).mapTo[BaschedRequest.ReplyAddProject]
+
+        onSuccess(response) {
+          case ReplyAddProject(BaschedRequest.ADDED) => complete(StatusCodes.Created)
+          case ReplyAddProject(BaschedRequest.DUPLICATE) => complete(StatusCodes.Conflict)
           case _ => complete(StatusCodes.NotFound)
         }
       }
