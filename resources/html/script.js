@@ -236,11 +236,9 @@ function requestUnfinishedTasks() {
 }
 
 function updatePomodoros(taskid, pomodorosToAdd) {
-    var xhttp = new XMLHttpRequest();
-    xhttp.open("POST",
-        "http://localhost:9080/basched/updatePomodorosCount?taskid="+taskid+"&pomodorosToAdd="+pomodorosToAdd,
-        true);
-    xhttp.send();
+    makeRequest('POST', "http://localhost:9080/basched/updatePomodorosCount?taskid="+taskid+"&pomodorosToAdd="+
+        pomodorosToAdd)
+    .catch(logHttpError)
 }
 
 function updateTasksWindow(taskid) {
