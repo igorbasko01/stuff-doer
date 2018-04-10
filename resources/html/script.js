@@ -174,7 +174,7 @@ function handleTasksReply(response) {
     $("#current_task tr").remove();
     $("#current_task").append("<tr><th>Project</th><th>Current Task</th><th>Priority</th></tr>}");
     $("#tasks_table").append("<tr><th>Project</th><th>Other Tasks</th><th>Priority</th></tr>")
-    var tasks = JSON.parse(response).tasks;
+    var tasks = JSON.parse(response.responseText).tasks;
     var tasksRows = [];
     var current_task = ""
     currentTask = null;
@@ -229,16 +229,10 @@ function getRemainingTime(callbackToRun) {
 
 function requestUnfinishedTasks() {
     // Get all unfinished tasks.
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-      if (this.readyState == 4 && this.status == 200) {
-          handleTasksReply(this.responseText);
-          getRemainingTime(displayTime);
-      }
-    };
-
-    xhttp.open("GET", "http://localhost:9080/basched/unfinishedtasks", true);
-    xhttp.send();
+    makeRequest('GET', "http://localhost:9080/basched/unfinishedtasks")
+    .then(function (xhr) {handleTasksReply(xhr);})
+    .then(function () {getRemainingTime(displayTime);})
+    .catch(logHttpError);
 }
 
 function updatePomodoros(taskid, pomodorosToAdd) {
