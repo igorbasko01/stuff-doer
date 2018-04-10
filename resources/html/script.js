@@ -214,21 +214,16 @@ function handleTasksReply(response) {
 // that should get the duration as a parameter.
 function getRemainingTime(callbackToRun) {
     console.log("getting time.")
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-            var duration = JSON.parse(this.responseText).duration;
-            callbackToRun(duration);
-        } else if (this.readyState == 4) {
-            console.log("Could not retrieve pomodoro time.");
-        }
-    };
 
     if (currentTask != null) {
-        xhttp.open("GET",
-            "http://localhost:9080/basched/getRemainingPomodoroTime?taskid="+currentTask.id+"&priority="+currentTask.priority,
-            true);
-        xhttp.send();
+        makeRequest('GET',
+            "http://localhost:9080/basched/getRemainingPomodoroTime?taskid="+currentTask.id+"&priority="+
+                currentTask.priority)
+            .then(function (xhr) {
+                var duration = JSON.parse(xhr.responseText).duration;
+                callbackToRun(duration);
+            })
+            .catch(logHttpError);
     }
 }
 
