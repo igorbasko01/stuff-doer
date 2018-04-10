@@ -251,14 +251,9 @@ function finishTask(id) {
     if (currentTask != null && id == currentTask.id)
         setStartStopButtonState("Stop");
 
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 201) {
-              requestUnfinishedTasks();
-          }
-        };
-    xhttp.open("POST", "http://localhost:9080/basched/finishTask?taskid="+id, true);
-    xhttp.send();
+    makeRequest('POST', "http://localhost:9080/basched/finishTask?taskid="+id)
+    .then(requestUnfinishedTasks)
+    .catch(logHttpError);
 }
 
 function makeRequest(method, url) {
