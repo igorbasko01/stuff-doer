@@ -127,9 +127,7 @@ function commitRecord(currentTime) {
     makeRequest('POST',
         "http://localhost:9080/basched/addRecord?taskid="+taskid+"&timestamp="+timestamp+"&duration="+roundedDuration)
         .then(handleRecordCommitResponse)
-        .catch(function (err) {
-            console.error('An error occurred !', err.statusText);
-        });
+        .catch(logHttpError);
 }
 
 function handleRecordCommitResponse(responseObject) {
@@ -165,14 +163,9 @@ function toggleHold(id) {
     if (currentTask != null && id == currentTask.id)
         setStartStopButtonState("Stop");
 
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 201) {
-              requestUnfinishedTasks();
-        }
-    };
-    xhttp.open("POST", "http://localhost:9080/basched/toggleHold?taskid="+id, true);
-    xhttp.send();
+    makeRequest('POST', "http://localhost:9080/basched/toggleHold?taskid="+id)
+        .then(requestUnfinishedTasks)
+        .catch(logHttpError);
 }
 
 function handleTasksReply(response) {
@@ -297,4 +290,8 @@ function makeRequest(method, url) {
         };
         xhr.send();
     });
+}
+
+function logHttpError(err) {
+    console.error('An error occurred !', err.statusText);
 }
