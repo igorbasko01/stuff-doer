@@ -238,13 +238,12 @@ function requestUnfinishedTasks() {
 function updatePomodoros(taskid, pomodorosToAdd) {
     makeRequest('POST', "http://localhost:9080/basched/updatePomodorosCount?taskid="+taskid+"&pomodorosToAdd="+
         pomodorosToAdd)
-    .catch(logHttpError)
+    .catch(logHttpError);
 }
 
 function updateTasksWindow(taskid) {
-    var xhttp = new XMLHttpRequest();
-    xhttp.open("POST", "http://localhost:9080/basched/updateTaskWindowIfNeeded?taskid="+taskid, true);
-    xhttp.send();
+    makeRequest('POST', "http://localhost:9080/basched/updateTaskWindowIfNeeded?taskid="+taskid)
+    .catch(logHttpError);
 }
 
 function finishTask(id) {
