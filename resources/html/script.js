@@ -45,13 +45,16 @@ function toggleStartStopButton(currentTime = new Date().getTime()) {
     console.log("toggleStartStopButton");
     var btnStart = $("#startTaskBtn");
     var btnState = btnStart.text();
+    var promise = Promise.resolve();
     if (btnState == "Start") {
         startTimer();
         btnStart.text("Stop");
     } else {
-        stopTimer(currentTime);
+        promise = stopTimer(currentTime);
         btnStart.text("Start");
     }
+
+    return promise;
 }
 
 function setStartStopButtonState(newState) {
@@ -78,8 +81,8 @@ function resetIntervals(pomodoroDuration) {
 }
 
 function stopTimer(currentTime) {
-    commitRecord(currentTime);
     clearInterval(timer);
+    return commitRecord(currentTime);
 }
 
 // Sets when the commit interval should happen.
@@ -92,10 +95,10 @@ function timerEnds() {
     var currentTime = new Date().getTime();
     if (currentTime > timeEnd) {
         notifyMe();
-        toggleStartStopButton(currentTime);
-        updatePomodoros(currentTask.id, 1)
-        .then(function () { return updateTasksWindow(currentTask.id)})
-        .then(function () {requestUnfinishedTasks()});
+        toggleStartStopButton(currentTime)
+        .then(function () { return updatePomodoros(currentTask.id, 1); })
+        .then(function () { return updateTasksWindow(currentTask.id); })
+        .then(function () { requestUnfinishedTasks(); });
         timeEnd = currentTime;
     } else {
         // If the timer ends, avoid duplicate record commit.
@@ -125,7 +128,7 @@ function commitRecord(currentTime) {
     var duration = intervalToUpdate_ms - Math.max(0, intervalEnd - currentTime);
     var roundedDuration = Math.round(duration/1000)*1000;
 
-    makeRequest('POST',
+    return makeRequest('POST',
         "http://localhost:9080/basched/addRecord?taskid="+taskid+"&timestamp="+timestamp+"&duration="+roundedDuration)
         .then(handleRecordCommitResponse)
         .catch(logHttpError);
