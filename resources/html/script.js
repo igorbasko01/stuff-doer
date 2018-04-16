@@ -42,6 +42,7 @@ function notifyMe() {
 }
 
 function toggleStartStopButton(currentTime = new Date().getTime()) {
+    console.log("toggleStartStopButton");
     var btnStart = $("#startTaskBtn");
     var btnState = btnStart.text();
     if (btnState == "Start") {
@@ -220,6 +221,7 @@ function getRemainingTime(callbackToRun) {
             "http://localhost:9080/basched/getRemainingPomodoroTime?taskid="+currentTask.id+"&priority="+
                 currentTask.priority)
             .then(function (xhr) {
+                console.log('got remaining time');
                 var duration = JSON.parse(xhr.responseText).duration;
                 callbackToRun(duration);
             })
@@ -228,6 +230,7 @@ function getRemainingTime(callbackToRun) {
 }
 
 function requestUnfinishedTasks() {
+    console.log('requestUnfinishedTasks');
     // Get all unfinished tasks.
     makeRequest('GET', "http://localhost:9080/basched/unfinishedtasks")
     .then(function (xhr) {handleTasksReply(xhr);})
@@ -236,13 +239,17 @@ function requestUnfinishedTasks() {
 }
 
 function updatePomodoros(taskid, pomodorosToAdd) {
+    console.log('updatePomodoros');
     makeRequest('POST', "http://localhost:9080/basched/updatePomodorosCount?taskid="+taskid+"&pomodorosToAdd="+
         pomodorosToAdd)
+    .then(function () {console.log('Pomodoro updated !');})
     .catch(logHttpError);
 }
 
 function updateTasksWindow(taskid) {
+    console.log('updateTasksWindow');
     makeRequest('POST', "http://localhost:9080/basched/updateTaskWindowIfNeeded?taskid="+taskid)
+    .then(function () {console.log('updateTasksWindow finished!');})
     .catch(logHttpError);
 }
 
