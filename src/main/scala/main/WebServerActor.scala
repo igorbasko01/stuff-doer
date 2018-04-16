@@ -54,7 +54,7 @@ class WebServerActor(hostname: String,
   val route =
     get {
       pathSingleSlash {
-        getFromFile("resources/html/index.html")
+        getFromFile("src/main/resources/html/index.html")
       } ~
         path("shutdown") {
           self ! WebServerActor.Shutdown
@@ -113,10 +113,10 @@ class WebServerActor(hostname: String,
           }
         } ~
         pathPrefix("html") {
-          getFromDirectory("resources/html")
+          getFromDirectory("src/main/resources/html")
         } ~
         pathPrefix("resources" / "mp3") {
-          getFromDirectory("resources/mp3")
+          getFromDirectory("src/main/resources/mp3")
         }
     } ~
       post {
