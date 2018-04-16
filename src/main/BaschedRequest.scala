@@ -287,7 +287,10 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
   def requestTaskDetails(taskid: Int) : Unit = {
     replyTo = sender()
     handleReply = replyTaskDetails
-    db ! DatabaseActor.QueryDB(0, s"SELECT * FROM ${Basched.TABLE_NAME_TASKS} WHERE ID = $taskid")
+    db ! DatabaseActor.QueryDB(0, s"SELECT t.ID, t.PRJID, p.NAME, t.NAME, t.START, t.PRIORITY, t.STATUS, t.POMODOROS " +
+      s"FROM ${Basched.TABLE_NAME_TASKS} t JOIN ${Basched.TABLE_NAME_PROJECTS} p " +
+      s"ON t.PRJID = p.ID " +
+      s"WHERE t.ID = $taskid")
   }
 
   /**

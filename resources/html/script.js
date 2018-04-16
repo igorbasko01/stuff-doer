@@ -42,15 +42,19 @@ function notifyMe() {
 }
 
 function toggleStartStopButton(currentTime = new Date().getTime()) {
+    console.log("toggleStartStopButton");
     var btnStart = $("#startTaskBtn");
     var btnState = btnStart.text();
+    var promise = Promise.resolve();
     if (btnState == "Start") {
         startTimer();
         btnStart.text("Stop");
     } else {
-        stopTimer(currentTime);
+        promise = stopTimer(currentTime);
         btnStart.text("Start");
     }
+
+    return promise;
 }
 
 function setStartStopButtonState(newState) {
@@ -77,8 +81,8 @@ function resetIntervals(pomodoroDuration) {
 }
 
 function stopTimer(currentTime) {
-    commitRecord(currentTime);
     clearInterval(timer);
+    return commitRecord(currentTime);
 }
 
 // Sets when the commit interval should happen.
@@ -91,10 +95,10 @@ function timerEnds() {
     var currentTime = new Date().getTime();
     if (currentTime > timeEnd) {
         notifyMe();
-        toggleStartStopButton(currentTime);
-        updatePomodoros(currentTask.id, 1);
-        updateTasksWindow(currentTask.id);
-        requestUnfinishedTasks();
+        toggleStartStopButton(currentTime)
+        .then(function () { return updatePomodoros(currentTask.id, 1); })
+        .then(function () { return updateTasksWindow(currentTask.id); })
+        .then(function () { requestUnfinishedTasks(); });
         timeEnd = currentTime;
     } else {
         // If the timer ends, avoid duplicate record commit.
@@ -116,11 +120,6 @@ function handleCommitInterval(currentTime) {
 
 // It means that it adds a row to the RECORDS table.
 function commitRecord(currentTime) {
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        handleRecordCommitResponse(this);
-    };
-
 
     var taskid = currentTask.id;
     var timestamp = currentTime;
@@ -128,10 +127,11 @@ function commitRecord(currentTime) {
     // The max length of an interval without the part of the time that passed.
     var duration = intervalToUpdate_ms - Math.max(0, intervalEnd - currentTime);
     var roundedDuration = Math.round(duration/1000)*1000;
-    xhttp.open("POST",
-        "http://localhost:9080/basched/addRecord?taskid="+taskid+"&timestamp="+timestamp+"&duration="+roundedDuration,
-        true);
-    xhttp.send();
+
+    return makeRequest('POST',
+        "http://localhost:9080/basched/addRecord?taskid="+taskid+"&timestamp="+timestamp+"&duration="+roundedDuration)
+        .then(handleRecordCommitResponse)
+        .catch(logHttpError);
 }
 
 function handleRecordCommitResponse(responseObject) {
@@ -167,14 +167,9 @@ function toggleHold(id) {
     if (currentTask != null && id == currentTask.id)
         setStartStopButtonState("Stop");
 
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 201) {
-              requestUnfinishedTasks();
-        }
-    };
-    xhttp.open("POST", "http://localhost:9080/basched/toggleHold?taskid="+id, true);
-    xhttp.send();
+    makeRequest('POST', "http://localhost:9080/basched/toggleHold?taskid="+id)
+        .then(requestUnfinishedTasks)
+        .catch(logHttpError);
 }
 
 function handleTasksReply(response) {
@@ -183,7 +178,7 @@ function handleTasksReply(response) {
     $("#current_task tr").remove();
     $("#current_task").append("<tr><th>Project</th><th>Current Task</th><th>Priority</th></tr>}");
     $("#tasks_table").append("<tr><th>Project</th><th>Other Tasks</th><th>Priority</th></tr>")
-    var tasks = JSON.parse(response).tasks;
+    var tasks = JSON.parse(response.responseText).tasks;
     var tasksRows = [];
     var current_task = ""
     currentTask = null;
@@ -223,50 +218,42 @@ function handleTasksReply(response) {
 // that should get the duration as a parameter.
 function getRemainingTime(callbackToRun) {
     console.log("getting time.")
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-            var duration = JSON.parse(this.responseText).duration;
-            callbackToRun(duration);
-        } else if (this.readyState == 4) {
-            console.log("Could not retrieve pomodoro time.");
-        }
-    };
 
     if (currentTask != null) {
-        xhttp.open("GET",
-            "http://localhost:9080/basched/getRemainingPomodoroTime?taskid="+currentTask.id+"&priority="+currentTask.priority,
-            true);
-        xhttp.send();
+        makeRequest('GET',
+            "http://localhost:9080/basched/getRemainingPomodoroTime?taskid="+currentTask.id+"&priority="+
+                currentTask.priority)
+            .then(function (xhr) {
+                console.log('got remaining time');
+                var duration = JSON.parse(xhr.responseText).duration;
+                callbackToRun(duration);
+            })
+            .catch(logHttpError);
     }
 }
 
 function requestUnfinishedTasks() {
+    console.log('requestUnfinishedTasks');
     // Get all unfinished tasks.
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-      if (this.readyState == 4 && this.status == 200) {
-          handleTasksReply(this.responseText);
-          getRemainingTime(displayTime);
-      }
-    };
-
-    xhttp.open("GET", "http://localhost:9080/basched/unfinishedtasks", true);
-    xhttp.send();
+    makeRequest('GET', "http://localhost:9080/basched/unfinishedtasks")
+    .then(function (xhr) {handleTasksReply(xhr);})
+    .then(function () {getRemainingTime(displayTime);})
+    .catch(logHttpError);
 }
 
 function updatePomodoros(taskid, pomodorosToAdd) {
-    var xhttp = new XMLHttpRequest();
-    xhttp.open("POST",
-        "http://localhost:9080/basched/updatePomodorosCount?taskid="+taskid+"&pomodorosToAdd="+pomodorosToAdd,
-        true);
-    xhttp.send();
+    console.log('updatePomodoros');
+    return makeRequest('POST', "http://localhost:9080/basched/updatePomodorosCount?taskid="+taskid+"&pomodorosToAdd="+
+        pomodorosToAdd)
+    .then(function () {console.log('Pomodoro updated !');})
+    .catch(logHttpError);
 }
 
 function updateTasksWindow(taskid) {
-    var xhttp = new XMLHttpRequest();
-    xhttp.open("POST", "http://localhost:9080/basched/updateTaskWindowIfNeeded?taskid="+taskid, true);
-    xhttp.send();
+    console.log('updateTasksWindow');
+    return makeRequest('POST', "http://localhost:9080/basched/updateTaskWindowIfNeeded?taskid="+taskid)
+    .then(function () {console.log('updateTasksWindow finished!');})
+    .catch(logHttpError);
 }
 
 function finishTask(id) {
@@ -274,12 +261,28 @@ function finishTask(id) {
     if (currentTask != null && id == currentTask.id)
         setStartStopButtonState("Stop");
 
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 201) {
-              requestUnfinishedTasks();
-          }
+    makeRequest('POST', "http://localhost:9080/basched/finishTask?taskid="+id)
+    .then(requestUnfinishedTasks)
+    .catch(logHttpError);
+}
+
+function makeRequest(method, url) {
+    return new Promise(function (resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open(method, url);
+        xhr.onload = function() {
+            resolve(xhr);
         };
-    xhttp.open("POST", "http://localhost:9080/basched/finishTask?taskid="+id, true);
-    xhttp.send();
+        xhr.onerror = function() {
+            reject({
+                status: this.status,
+                statusText: xhr.statusText
+            });
+        };
+        xhr.send();
+    });
+}
+
+function logHttpError(err) {
+    console.error('An error occurred !', err.statusText);
 }
