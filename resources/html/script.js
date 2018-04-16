@@ -93,9 +93,9 @@ function timerEnds() {
     if (currentTime > timeEnd) {
         notifyMe();
         toggleStartStopButton(currentTime);
-        updatePomodoros(currentTask.id, 1);
-        updateTasksWindow(currentTask.id);
-        requestUnfinishedTasks();
+        updatePomodoros(currentTask.id, 1)
+        .then(function () { return updateTasksWindow(currentTask.id)})
+        .then(function () {requestUnfinishedTasks()});
         timeEnd = currentTime;
     } else {
         // If the timer ends, avoid duplicate record commit.
@@ -248,7 +248,7 @@ function updatePomodoros(taskid, pomodorosToAdd) {
 
 function updateTasksWindow(taskid) {
     console.log('updateTasksWindow');
-    makeRequest('POST', "http://localhost:9080/basched/updateTaskWindowIfNeeded?taskid="+taskid)
+    return makeRequest('POST', "http://localhost:9080/basched/updateTaskWindowIfNeeded?taskid="+taskid)
     .then(function () {console.log('updateTasksWindow finished!');})
     .catch(logHttpError);
 }
