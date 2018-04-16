@@ -43,7 +43,7 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
 
   val db: ActorRef = context.parent
   var webServer: ActorRef = _
-  
+
   var requests: Map[Int, ((DatabaseActor.QueryResult) => Unit)] = Map(0 -> ((_: DatabaseActor.QueryResult) => ()))
 
   override def preStart(): Unit = {
