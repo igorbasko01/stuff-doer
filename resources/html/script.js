@@ -240,7 +240,7 @@ function requestUnfinishedTasks() {
 
 function updatePomodoros(taskid, pomodorosToAdd) {
     console.log('updatePomodoros');
-    makeRequest('POST', "http://localhost:9080/basched/updatePomodorosCount?taskid="+taskid+"&pomodorosToAdd="+
+    return makeRequest('POST', "http://localhost:9080/basched/updatePomodorosCount?taskid="+taskid+"&pomodorosToAdd="+
         pomodorosToAdd)
     .then(function () {console.log('Pomodoro updated !');})
     .catch(logHttpError);
