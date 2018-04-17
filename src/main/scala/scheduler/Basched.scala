@@ -1,9 +1,10 @@
-package main
+package scheduler
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import main.DatabaseActor
 import utils.Configuration
-import main.Basched._
 import webserver.WebServerActor
+import scheduler.Basched._
 
 /**
   * A companion object for the [[Basched]] class.

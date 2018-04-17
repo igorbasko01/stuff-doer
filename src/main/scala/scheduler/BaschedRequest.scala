@@ -1,10 +1,11 @@
-package main
+package scheduler
 
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props}
-import main.BaschedRequest._
+import main.DatabaseActor
 import main.DatabaseActor.QueryResult
 import org.joda.time.format.DateTimeFormat
 import webserver.WebServerActor
+import scheduler.BaschedRequest._
 
 import scala.util.{Success, Try}
 

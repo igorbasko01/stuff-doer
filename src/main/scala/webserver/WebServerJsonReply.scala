@@ -1,7 +1,7 @@
 package webserver
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import main.BaschedRequest
+import scheduler.BaschedRequest
 import spray.json.DefaultJsonProtocol
 
 trait WebServerJsonReply extends SprayJsonSupport with DefaultJsonProtocol {

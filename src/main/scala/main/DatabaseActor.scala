@@ -8,6 +8,7 @@ import java.sql.{Connection, DriverManager, ResultSet}
 
 import main.DatabaseActor.QueryResult
 import org.h2.jdbc.JdbcSQLException
+import scheduler.Basched
 import utils.Configuration
 
 import scala.collection.mutable.ArrayBuffer
