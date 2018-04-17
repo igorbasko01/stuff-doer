@@ -3,6 +3,7 @@ package main
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import utils.Configuration
 import main.Basched._
+import webserver.WebServerActor
 
 /**
   * A companion object for the [[Basched]] class.

@@ -1,17 +1,16 @@
-package main
+package webserver
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import akka.pattern.ask
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.{Directives, Route}
+import akka.pattern.ask
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import main.BaschedRequest._
 import main.DatabaseActor.QueryResult
-import spray.json._
+import main._
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -19,22 +18,12 @@ import scala.concurrent.duration._
 /**
   * Created by igor on 14/05/17.
   */
-final case class Tasks(tasks: List[BaschedRequest.Task])
-final case class Projects(projects: List[BaschedRequest.Project])
-final case class PomodoroDuration(duration: Long)
-
-trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
-  implicit val taskFormat = jsonFormat9(BaschedRequest.Task)
-  implicit val tasksFormat = jsonFormat1(Tasks)
-
-  implicit val projFormat = jsonFormat2(BaschedRequest.Project)
-  implicit val projsFormat = jsonFormat1(Projects)
-
-  implicit val pomodoroDurationFormat = jsonFormat1(PomodoroDuration)
-}
-
 object WebServerActor {
   case object Shutdown
+
+  final case class Tasks(tasks: List[BaschedRequest.Task])
+  final case class Projects(projects: List[BaschedRequest.Project])
+  final case class PomodoroDuration(duration: Long)
 
   // A recommended way of creating props for actors with parameters.
   def props(hostname: String, port: Int, databaseActor: ActorRef): Props =
@@ -43,7 +32,7 @@ object WebServerActor {
 
 class WebServerActor(hostname: String,
                      port: Int,
-                     databaseActor: ActorRef) extends Actor with ActorLogging with Directives with JsonSupport {
+                     databaseActor: ActorRef) extends Actor with ActorLogging with Directives with WebServerJsonReply {
 
   implicit val materializer = ActorMaterializer()
 
@@ -87,7 +76,7 @@ class WebServerActor(hostname: String,
         path("basched" / "allprojects") {
           val response = sendRequest(BaschedRequest.RequestAllProjects).mapTo[ReplyAllProjects]
           onSuccess(response) {
-            case ReplyAllProjects(projs) => complete(Projects(projs))
+            case ReplyAllProjects(projs) => complete(WebServerActor.Projects(projs))
             case other => complete(HttpResponse(StatusCodes.NotFound,Nil,
               HttpEntity(ContentTypes.`text/plain(UTF-8)`,s"Could not get any projects: $other")))
           }
@@ -106,7 +95,7 @@ class WebServerActor(hostname: String,
               .mapTo[BaschedRequest.ReplyRemainingTimeInPomodoro]
 
             onSuccess(response) {
-              case BaschedRequest.ReplyRemainingTimeInPomodoro(duration) => complete(PomodoroDuration(duration))
+              case BaschedRequest.ReplyRemainingTimeInPomodoro(duration) => complete(WebServerActor.PomodoroDuration(duration))
               case other => complete(HttpResponse(StatusCodes.NotFound,Nil,
                 HttpEntity(ContentTypes.`text/plain(UTF-8)`,s"Could not get a duration: $other")))
             }
@@ -249,7 +238,7 @@ class WebServerActor(hostname: String,
     if (tasks.exists(_.status == Basched.STATUS("READY")))
     // If have any tasks in ready status, than there should be a current task selected.
     // so just return all the tasks to the client.
-      complete(Tasks(tasks))
+      complete(WebServerActor.Tasks(tasks))
     else {
       // Otherwise, there are no READY tasks, so try and convert all the WINDOW_FINISHED tasks into READY tasks.
       val response = sendRequest(BaschedRequest.RequestUpdateAllWindowFinishedToReady)
@@ -262,7 +251,7 @@ class WebServerActor(hostname: String,
           val resp_unf = sendRequest(BaschedRequest.RequestAllUnfinishedTasks)
             .mapTo[BaschedRequest.ReplyAllUnfinishedTasks]
           onSuccess(resp_unf) {
-            case ReplyAllUnfinishedTasks(unf_tasks) => complete(Tasks(unf_tasks))
+            case ReplyAllUnfinishedTasks(unf_tasks) => complete(WebServerActor.Tasks(unf_tasks))
             case _ => complete(StatusCodes.NotFound)
           }
         case _ => complete(StatusCodes.NotFound)
@@ -284,3 +273,5 @@ class WebServerActor(hostname: String,
     }
   }
 }
+
+
