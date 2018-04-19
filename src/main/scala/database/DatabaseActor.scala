@@ -1,16 +1,16 @@
-package main
+package database
+
+import java.sql.{Connection, DriverManager, ResultSet}
 
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props}
 import akka.stream._
-
-import scala.util.{Failure, Success, Try}
-import java.sql.{Connection, DriverManager, ResultSet}
-
-import main.DatabaseActor.QueryResult
+import database.DatabaseActor.QueryResult
 import org.h2.jdbc.JdbcSQLException
+import scheduler.Basched
 import utils.Configuration
 
 import scala.collection.mutable.ArrayBuffer
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by igor on 25/05/17.

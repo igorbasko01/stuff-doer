@@ -1,8 +1,10 @@
-package main
+package scheduler
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import database.DatabaseActor
 import utils.Configuration
-import main.Basched._
+import webserver.WebServerActor
+import scheduler.Basched._
 
 /**
   * A companion object for the [[Basched]] class.
@@ -43,7 +45,7 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
 
   val db: ActorRef = context.parent
   var webServer: ActorRef = _
-  
+
   var requests: Map[Int, ((DatabaseActor.QueryResult) => Unit)] = Map(0 -> ((_: DatabaseActor.QueryResult) => ()))
 
   override def preStart(): Unit = {
