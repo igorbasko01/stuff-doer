@@ -1,7 +1,7 @@
 package scheduler
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import main.DatabaseActor
+import database.DatabaseActor
 import utils.Configuration
 import webserver.WebServerActor
 import scheduler.Basched._

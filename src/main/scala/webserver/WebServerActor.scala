@@ -8,8 +8,8 @@ import akka.http.scaladsl.server.{Directives, Route}
 import akka.pattern.ask
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import main.DatabaseActor
-import main.DatabaseActor.QueryResult
+import database.DatabaseActor
+import database.DatabaseActor.QueryResult
 import scheduler.BaschedRequest
 import scheduler.BaschedRequest._
 import scheduler.Basched

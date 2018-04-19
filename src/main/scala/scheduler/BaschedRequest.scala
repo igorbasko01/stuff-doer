@@ -1,8 +1,8 @@
 package scheduler
 
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props}
-import main.DatabaseActor
-import main.DatabaseActor.QueryResult
+import database.DatabaseActor
+import database.DatabaseActor.QueryResult
 import org.joda.time.format.DateTimeFormat
 import webserver.WebServerActor
 import scheduler.BaschedRequest._
