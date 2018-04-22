@@ -84,6 +84,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     case RequestAddProject(prjName) => requestAddProject(prjName)
     case RequestAllUnfinishedTasks => queryAllUnfinishedTasks()
     case RequestUpdatePmdrCountInTask(taskid, pom) => requestUpdatePmdrCount(taskid, pom)
+    case req: RequestStartTask => requestStartTask(req)
     case req: RequestRemainingTimeInPomodoro => queryRemainingTimeInPomodoro(req.taskId,req.priority)
     case RequestTaskDetails(taskid) => requestTaskDetails(taskid)
     case req: RequestTaskStatusUpdate => requestTaskStatusUpdate(req.taskid, req.newStatus)
