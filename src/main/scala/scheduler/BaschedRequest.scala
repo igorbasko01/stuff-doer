@@ -53,6 +53,9 @@ object BaschedRequest {
   case object RequestUpdateAllWindowFinishedToReady extends Message
   case class ReplyUpdateAllWindowFinishedToReady(response: Int)
 
+  case class RequestStartTask(taskid: Int, startTimeStamp: Long, initialDuration: Long) extends Message
+  case class ReplyStartTask(response: Int)
+
   /**
     * Returns a [[Props]] object with instantiated [[BaschedRequest]] class.
     * @param db The [[DatabaseActor]] that the queries will be sent to.
@@ -346,6 +349,30 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     r match {
       case QueryResult(_, _, _, 0) => replyTo ! ReplyUpdateAllWindowFinishedToReady(BaschedRequest.UPDATED)
       case _ => replyTo ! ReplyUpdateAllWindowFinishedToReady(BaschedRequest.ERROR)
+    }
+  }
+
+  /**
+    * Starts a [[Task]], by adding it to the active tasks table.
+    * @param req The [[RequestStartTask]] request parameters.
+    */
+  def requestStartTask(req: RequestStartTask) : Unit = {
+    replyTo = sender()
+    handleReply = replyStartTask
+
+    db ! DatabaseActor.QueryDB(0, s"INSERT INTO ${Basched.TABLE_NAME_ACTIVE_TASK} " +
+      s"(TSKID, START, LAST_PING, INITIAL_DURATION) " +
+      s"VALUES (${req.taskid}, ${req.startTimeStamp}, ${req.startTimeStamp}, ${req.initialDuration})", update = true)
+  }
+
+  /**
+    * Handles the reply of the [[requestStartTask()]] function.
+    * @param r The [[DatabaseActor.QueryResult]]
+    */
+  def replyStartTask(r: DatabaseActor.QueryResult) : Unit = {
+    r match {
+      case QueryResult(_, _, _, 0) => replyTo ! ReplyStartTask(BaschedRequest.ADDED)
+      case _ => replyTo ! ReplyStartTask(BaschedRequest.ERROR)
     }
   }
 }
