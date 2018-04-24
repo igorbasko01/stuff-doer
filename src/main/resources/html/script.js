@@ -112,11 +112,18 @@ function timerEnds() {
 // Checks if an interval passed and commits the work to the server.
 function handleCommitInterval(currentTime) {
     if (currentTime > intervalEnd) {
+        pingTask();
         commitRecord(currentTime);
         resetCommitInterval(currentTime);
     }
 
     displayTime(intervalEnd - currentTime, $("#intervalTime"));
+}
+
+function pingTask() {
+    console.log("Ping !");
+    makeRequest('POST', "http://localhost:9080/basched/pingTask?taskid="+currentTask.id)
+    .catch(logHttpError);
 }
 
 // It means that it adds a row to the RECORDS table.
