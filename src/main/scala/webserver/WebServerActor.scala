@@ -210,6 +210,9 @@ class WebServerActor(hostname: String,
           } ~
         path("basched" / "startTask") {
           parameters('taskid, 'priority) { (taskid, priority) => startTask(taskid.toInt, priority.toInt) }
+        } ~
+        path("basched" / "pingTask") {
+          parameters('taskid) { (taskid) => pingTask(taskid.toInt) }
         }
 
       }
@@ -296,6 +299,22 @@ class WebServerActor(hostname: String,
 
     onSuccess(startTaskRep) {
       case BaschedRequest.ReplyStartTask(ADDED) => complete(StatusCodes.OK)
+      case _ => complete(StatusCodes.NotFound)
+    }
+  }
+
+  /**
+    * Invoke a last_ping update in the active tasks table.
+    * @param taskid The task id to update its last ping.
+    * @return If the request was successful. 
+    */
+  def pingTask(taskid: Int) : Route = {
+
+    val pingTaskRep = sendRequest(BaschedRequest.RequestUpdateLastPing(taskid))
+      .mapTo[BaschedRequest.ReplyUpdateLastPing]
+
+    onSuccess(pingTaskRep) {
+      case BaschedRequest.ReplyUpdateLastPing(UPDATED) => complete(StatusCodes.OK)
       case _ => complete(StatusCodes.NotFound)
     }
   }
