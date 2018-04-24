@@ -9,6 +9,11 @@ import scheduler.BaschedRequest._
 
 import scala.util.{Success, Try}
 
+//TODO: Create a stopTask request. Should store the duration of the interval in records table. And delete the row from active_task.
+//TODO: Change the calculate remaining time in pomodoro, to check from where to calculate. Records table or active_task table.
+//TODO: Remove the commitRecord from the javascript code.
+//TODO: Add a getremaining time of pomodoro in each interval execution in the javascript code. And display the remaining time.
+
 /**
   * A companion object for [[BaschedRequest]]. Contains all the messages that are handle by it and a props function
   * to use when creating an actor of type [[BaschedRequest]].
