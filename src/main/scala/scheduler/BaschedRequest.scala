@@ -56,6 +56,9 @@ object BaschedRequest {
   case class RequestStartTask(taskid: Int, initialDuration: Long) extends Message
   case class ReplyStartTask(response: Int)
 
+  case class RequestUpdateLastPing(taskid: Int) extends Message
+  case class ReplyUpdateLastPing(response: Int)
+
   /**
     * Returns a [[Props]] object with instantiated [[BaschedRequest]] class.
     * @param db The [[DatabaseActor]] that the queries will be sent to.
@@ -86,6 +89,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     case RequestUpdatePmdrCountInTask(taskid, pom) => requestUpdatePmdrCount(taskid, pom)
     case req: RequestStartTask => requestStartTask(req)
     case req: RequestRemainingTimeInPomodoro => queryRemainingTimeInPomodoro(req.taskId,req.priority)
+    case req: RequestUpdateLastPing => requestUpdateLastPing(req)
     case RequestTaskDetails(taskid) => requestTaskDetails(taskid)
     case req: RequestTaskStatusUpdate => requestTaskStatusUpdate(req.taskid, req.newStatus)
     case RequestUpdateAllWindowFinishedToReady => requestUpdateAllWindowFinishedToReady()
@@ -374,6 +378,29 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     r match {
       case QueryResult(_, _, _, 0) => replyTo ! ReplyStartTask(BaschedRequest.ADDED)
       case _ => replyTo ! ReplyStartTask(BaschedRequest.ERROR)
+    }
+  }
+
+  /**
+    * Update the last time a [[Task]] was pinged.
+    * @param req The [[RequestUpdateLastPing]]
+    */
+  def requestUpdateLastPing(req: RequestUpdateLastPing) : Unit = {
+    replyTo = sender()
+    handleReply = replyUpdateLastPing
+
+    db ! DatabaseActor.QueryDB(0, s"UPDATE ${Basched.TABLE_NAME_ACTIVE_TASK} SET LAST_PING=CURRENT_TIMESTAMP() " +
+      s"WHERE TSKID=${req.taskid}", update = true)
+  }
+
+  /**
+    * Handles the reply of the [[requestUpdateLastPing()]] function.
+    * @param r The [[DatabaseActor.QueryResult]]
+    */
+  def replyUpdateLastPing(r: DatabaseActor.QueryResult) : Unit = {
+    r match {
+      case QueryResult(_, _, _, 0) => replyTo ! ReplyUpdateLastPing(BaschedRequest.UPDATED)
+      case _ => replyTo ! ReplyUpdateLastPing(BaschedRequest.ERROR)
     }
   }
 }
