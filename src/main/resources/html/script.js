@@ -68,6 +68,7 @@ function setStartStopButtonState(newState) {
 }
 
 function startTimer() {
+    startTaskRequest();
     getRemainingTime(resetIntervals);
 }
 
@@ -263,6 +264,11 @@ function finishTask(id) {
 
     makeRequest('POST', "http://localhost:9080/basched/finishTask?taskid="+id)
     .then(requestUnfinishedTasks)
+    .catch(logHttpError);
+}
+
+function startTaskRequest() {
+    makeRequest('POST', "http://localhost:9080/basched/startTask?taskid="+currentTask.id+"&priority="+currentTask.priority)
     .catch(logHttpError);
 }
 

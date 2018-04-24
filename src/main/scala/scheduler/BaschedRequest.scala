@@ -53,7 +53,7 @@ object BaschedRequest {
   case object RequestUpdateAllWindowFinishedToReady extends Message
   case class ReplyUpdateAllWindowFinishedToReady(response: Int)
 
-  case class RequestStartTask(taskid: Int, startTimeStamp: Long, initialDuration: Long) extends Message
+  case class RequestStartTask(taskid: Int, initialDuration: Long) extends Message
   case class ReplyStartTask(response: Int)
 
   /**
@@ -362,8 +362,8 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     handleReply = replyStartTask
 
     db ! DatabaseActor.QueryDB(0, s"INSERT INTO ${Basched.TABLE_NAME_ACTIVE_TASK} " +
-      s"(TSKID, START, LAST_PING, INITIAL_DURATION) " +
-      s"VALUES (${req.taskid}, ${req.startTimeStamp}, ${req.startTimeStamp}, ${req.initialDuration})", update = true)
+      s"(TSKID, INITIAL_DURATION) " +
+      s"VALUES (${req.taskid}, ${req.initialDuration})", update = true)
   }
 
   /**

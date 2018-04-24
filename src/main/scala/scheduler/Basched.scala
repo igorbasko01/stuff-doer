@@ -119,7 +119,7 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
   private def createStmtActiveTaskTable = s"CREATE TABLE $TABLE_NAME_ACTIVE_TASK (" +
     s"TSKID INT," +
     s"START TIMESTAMP DEFAULT CURRENT_TIMESTAMP(), " +
-    s"LAST_PING TIMESTAMP," +
+    s"LAST_PING TIMESTAMP DEFAULT CURRENT_TIMESTAMP()," +
     s"INITIAL_DURATION BIGINT" +
     s")"
 }

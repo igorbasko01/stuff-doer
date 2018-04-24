@@ -207,7 +207,11 @@ class WebServerActor(hostname: String,
                 case _ => complete(StatusCodes.NotFound)
               }
             }
-          }
+          } ~
+        path("basched" / "startTask") {
+          parameters('taskid, 'priority) { (taskid, priority) => startTask(taskid.toInt, priority.toInt) }
+        }
+
       }
 
   /**
@@ -272,6 +276,27 @@ class WebServerActor(hostname: String,
       case x: Int if x == Basched.STATUS("WINDOW_FINISHED") => Basched.STATUS("ON_HOLD_WINDOW_FINISHED")
       case x: Int if x == Basched.STATUS("ON_HOLD_READY") => Basched.STATUS("READY")
       case x: Int if x == Basched.STATUS("ON_HOLD_WINDOW_FINISHED") => Basched.STATUS("WINDOW_FINISHED")
+    }
+  }
+
+  /** Start a task
+    * @param taskid The [[Task.id]]
+    * @param priority The [[Task.priority]]
+    * @return Route.
+    */
+  def startTask(taskid: Int, priority: Int) : Route = {
+
+    val startTaskRep = sendRequest(BaschedRequest.RequestRemainingTimeInPomodoro(taskid,priority))
+      .mapTo[BaschedRequest.ReplyRemainingTimeInPomodoro]
+      .flatMap(rep => {
+
+      sendRequest(BaschedRequest.RequestStartTask(taskid, Basched.POMODORO_MAX_DURATION_MS - rep.duration))
+        .mapTo[BaschedRequest.ReplyStartTask]
+    })(context.dispatcher)
+
+    onSuccess(startTaskRep) {
+      case BaschedRequest.ReplyStartTask(ADDED) => complete(StatusCodes.OK)
+      case _ => complete(StatusCodes.NotFound)
     }
   }
 }
