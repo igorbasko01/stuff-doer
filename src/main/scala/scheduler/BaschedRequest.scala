@@ -30,6 +30,7 @@ object BaschedRequest {
   val DUPLICATE = 1
   val ERROR = 2
   val UPDATED = 3
+  val SUCCESS = 4
   case class ReplyAddTask(response: Int) extends Message
 
   case object RequestAllUnfinishedTasks extends Message
@@ -64,6 +65,10 @@ object BaschedRequest {
   case class RequestUpdateLastPing(taskid: Int) extends Message
   case class ReplyUpdateLastPing(response: Int)
 
+  case class RequestActiveTaskDetails(taskid: Int) extends Message
+  case class ActiveTask(taskid: Int, startTimestamp: String, endTimestamp: String, initDuration: Long)
+  case class ReplyActiveTaskDetails(status: Int, activeTask: ActiveTask)
+
   /**
     * Returns a [[Props]] object with instantiated [[BaschedRequest]] class.
     * @param db The [[DatabaseActor]] that the queries will be sent to.
@@ -95,6 +100,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     case req: RequestStartTask => requestStartTask(req)
     case req: RequestRemainingTimeInPomodoro => queryRemainingTimeInPomodoro(req.taskId,req.priority)
     case req: RequestUpdateLastPing => requestUpdateLastPing(req)
+    case req: RequestActiveTaskDetails => requestActiveTaskDetails(req.taskid)
     case RequestTaskDetails(taskid) => requestTaskDetails(taskid)
     case req: RequestTaskStatusUpdate => requestTaskStatusUpdate(req.taskid, req.newStatus)
     case RequestUpdateAllWindowFinishedToReady => requestUpdateAllWindowFinishedToReady()
@@ -407,5 +413,39 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
       case QueryResult(_, _, _, 0) => replyTo ! ReplyUpdateLastPing(BaschedRequest.UPDATED)
       case _ => replyTo ! ReplyUpdateLastPing(BaschedRequest.ERROR)
     }
+  }
+
+  /**
+    * Queries a specific task from the [[Basched.TABLE_NAME_ACTIVE_TASK]] table.
+    * @param taskid [[Task.id]] to query.
+    */
+  def requestActiveTaskDetails(taskid: Int) : Unit = {
+    replyTo = sender()
+    handleReply = replyActiveTaskDetails
+
+    db ! DatabaseActor.QueryDB(0, s"SELECT TSKID, START, LAST_PING, INITIAL_DURATION " +
+      s"FROM ${Basched.TABLE_NAME_ACTIVE_TASK}")
+  }
+
+  /**
+    * Handle the reply of [[RequestActiveTaskDetails]]
+    * @param r The [[DatabaseActor.QueryResult]]
+    */
+  def replyActiveTaskDetails(r: DatabaseActor.QueryResult) : Unit = {
+    val reply = r match {
+      case QueryResult(_, Some(result), "", 0) => (SUCCESS, listToActiveTask(result.head))
+      case _ => (ERROR, ActiveTask(0, "", "", 0))
+    }
+
+    replyTo ! reply
+  }
+
+  /**
+    * Parse a list of strings to an ActiveTask object.
+    * @param stringList A list of strings that contains all the necessary fields to create an ActiveTask.
+    * @return An ActiveTask object.
+    */
+  def listToActiveTask(stringList: List[String]) : ActiveTask = {
+    ActiveTask(stringList.head.toInt, stringList(1), stringList(2), stringList(3).toLong)
   }
 }
