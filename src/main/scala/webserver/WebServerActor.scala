@@ -10,11 +10,12 @@ import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import database.DatabaseActor
 import database.DatabaseActor.QueryResult
+import org.joda.time.format.DateTimeFormat
 import scheduler.BaschedRequest
 import scheduler.BaschedRequest._
 import scheduler.Basched
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 
 /**
@@ -213,6 +214,9 @@ class WebServerActor(hostname: String,
         } ~
         path("basched" / "pingTask") {
           parameters('taskid) { (taskid) => pingTask(taskid.toInt) }
+        } ~
+        path("basched" / "stopTask") {
+          parameters('taskid) { (taskid) => stopTask(taskid.toInt)}
         }
 
       }
@@ -306,7 +310,7 @@ class WebServerActor(hostname: String,
   /**
     * Invoke a last_ping update in the active tasks table.
     * @param taskid The task id to update its last ping.
-    * @return If the request was successful. 
+    * @return If the request was successful.
     */
   def pingTask(taskid: Int) : Route = {
 
@@ -317,6 +321,50 @@ class WebServerActor(hostname: String,
       case BaschedRequest.ReplyUpdateLastPing(UPDATED) => complete(StatusCodes.OK)
       case _ => complete(StatusCodes.NotFound)
     }
+  }
+
+  def stopTask(taskid: Int) : Route = {
+
+    implicit val ec: ExecutionContext = context.dispatcher
+
+    val response = for {
+      updateLastPing <- sendRequest(BaschedRequest.RequestUpdateLastPing(taskid)).mapTo[ReplyUpdateLastPing]
+      activeTaskDetails <- if (updateLastPing.response == BaschedRequest.UPDATED) getActiveTaskDetails(taskid)
+                          else Future.successful(ReplyActiveTaskDetails(ERROR,ActiveTask(0,"","",0)))
+      storeTaskDetails <- if (activeTaskDetails.status == BaschedRequest.SUCCESS)
+                            storeTaskDetailsInRecordsTable(convertActiveTaskToStore(activeTaskDetails.activeTask))
+                          else Future.successful(ReplyAddRecord(ERROR))
+      deleteTask <- if (storeTaskDetails.response == BaschedRequest.ADDED) deleteActiveTask(taskid)
+                    else Future.successful(ReplyDeleteActiveTask(ERROR))
+    } yield deleteTask
+
+    onSuccess(response) {
+      case ReplyDeleteActiveTask(SUCCESS) => complete(StatusCodes.OK)
+      case _ => complete(StatusCodes.NotFound)
+    }
+  }
+
+  def getActiveTaskDetails(taskid: Int) : Future[ReplyActiveTaskDetails] = {
+    sendRequest(RequestActiveTaskDetails(taskid)).mapTo[ReplyActiveTaskDetails]
+  }
+
+  def storeTaskDetailsInRecordsTable(req: RequestAddRecord) : Future[ReplyAddRecord] = {
+    sendRequest(req).mapTo[ReplyAddRecord]
+  }
+
+  def convertActiveTaskToStore(activeTask: ActiveTask) : RequestAddRecord = {
+    val formatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSS")
+    val endTimestamp_ms = formatter.parseDateTime(activeTask.endTimestamp).getMillis
+    val startTimestamp_ms = formatter.parseDateTime(activeTask.startTimestamp).getMillis
+
+    val taskid = activeTask.taskid
+    val duration = endTimestamp_ms - startTimestamp_ms
+
+    RequestAddRecord(taskid, endTimestamp_ms, duration)
+  }
+
+  def deleteActiveTask(taskid: Int) : Future[ReplyDeleteActiveTask] = {
+    sendRequest(RequestDeleteActiveTask(taskid)).mapTo[ReplyDeleteActiveTask]
   }
 }
 

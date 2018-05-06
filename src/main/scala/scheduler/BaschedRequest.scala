@@ -69,6 +69,9 @@ object BaschedRequest {
   case class ActiveTask(taskid: Int, startTimestamp: String, endTimestamp: String, initDuration: Long)
   case class ReplyActiveTaskDetails(status: Int, activeTask: ActiveTask)
 
+  case class RequestDeleteActiveTask(taskid: Int) extends Message
+  case class ReplyDeleteActiveTask(response: Int)
+
   /**
     * Returns a [[Props]] object with instantiated [[BaschedRequest]] class.
     * @param db The [[DatabaseActor]] that the queries will be sent to.
@@ -101,6 +104,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     case req: RequestRemainingTimeInPomodoro => queryRemainingTimeInPomodoro(req.taskId,req.priority)
     case req: RequestUpdateLastPing => requestUpdateLastPing(req)
     case req: RequestActiveTaskDetails => requestActiveTaskDetails(req.taskid)
+    case req: RequestDeleteActiveTask => requestDeleteActiveTask(req.taskid)
     case RequestTaskDetails(taskid) => requestTaskDetails(taskid)
     case req: RequestTaskStatusUpdate => requestTaskStatusUpdate(req.taskid, req.newStatus)
     case RequestUpdateAllWindowFinishedToReady => requestUpdateAllWindowFinishedToReady()
@@ -447,5 +451,21 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     */
   def listToActiveTask(stringList: List[String]) : ActiveTask = {
     ActiveTask(stringList.head.toInt, stringList(1), stringList(2), stringList(3).toLong)
+  }
+
+  def requestDeleteActiveTask(taskid: Int) : Unit = {
+    replyTo = sender()
+    handleReply = replyDeleteActiveTask
+
+    db ! DatabaseActor.QueryDB(0, s"DELETE FROM ${Basched.TABLE_NAME_ACTIVE_TASK} WHERE TSKID=$taskid")
+  }
+
+  def replyDeleteActiveTask(r: DatabaseActor.QueryResult) : Unit = {
+    val reply = r match {
+      case QueryResult(_, Some(result), "", 0) => ReplyDeleteActiveTask(SUCCESS)
+      case _ => ReplyDeleteActiveTask(ERROR)
+    }
+
+    replyTo ! reply
   }
 }
