@@ -83,7 +83,8 @@ function resetIntervals(pomodoroDuration) {
 
 function stopTimer(currentTime) {
     clearInterval(timer);
-    return commitRecord(currentTime);
+//    return commitRecord(currentTime);
+    return stopTaskRequest();
 }
 
 // Sets when the commit interval should happen.
@@ -113,7 +114,7 @@ function timerEnds() {
 function handleCommitInterval(currentTime) {
     if (currentTime > intervalEnd) {
         pingTask();
-        commitRecord(currentTime);
+//        commitRecord(currentTime);
         resetCommitInterval(currentTime);
     }
 
@@ -276,6 +277,11 @@ function finishTask(id) {
 
 function startTaskRequest() {
     makeRequest('POST', "http://localhost:9080/basched/startTask?taskid="+currentTask.id+"&priority="+currentTask.priority)
+    .catch(logHttpError);
+}
+
+function stopTaskRequest() {
+    return makeRequest('POST', "http://localhost:9080/basched/stopTask?taskid="+currentTask.id)
     .catch(logHttpError);
 }
 
