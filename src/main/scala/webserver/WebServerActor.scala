@@ -323,6 +323,11 @@ class WebServerActor(hostname: String,
     }
   }
 
+  /**
+    * Stop a running task.
+    * @param taskid The [[Task.id]] of a running [[Task]]
+    * @return Route.
+    */
   def stopTask(taskid: Int) : Route = {
 
     implicit val ec: ExecutionContext = context.dispatcher
@@ -344,14 +349,29 @@ class WebServerActor(hostname: String,
     }
   }
 
+  /**
+    * Get details of an active task.
+    * @param taskid [[Task.id]]
+    * @return Future.
+    */
   def getActiveTaskDetails(taskid: Int) : Future[ReplyActiveTaskDetails] = {
     sendRequest(RequestActiveTaskDetails(taskid)).mapTo[ReplyActiveTaskDetails]
   }
 
+  /**
+    * Store a task in the records table.
+    * @param req [[RequestAddRecord]]
+    * @return Future.
+    */
   def storeTaskDetailsInRecordsTable(req: RequestAddRecord) : Future[ReplyAddRecord] = {
     sendRequest(req).mapTo[ReplyAddRecord]
   }
 
+  /**
+    * Convert an active task to a storable record.
+    * @param activeTask [[ActiveTask]] to convert.
+    * @return A [[RequestAddRecord]] to use when requesting to store.
+    */
   def convertActiveTaskToStore(activeTask: ActiveTask) : RequestAddRecord = {
     val formatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSS")
     val endTimestamp_ms = formatter.parseDateTime(activeTask.endTimestamp).getMillis
@@ -363,6 +383,11 @@ class WebServerActor(hostname: String,
     RequestAddRecord(taskid, endTimestamp_ms, duration)
   }
 
+  /**
+    * Remove a task from the active taks table.
+    * @param taskid The [[Task.id]] of the [[Task]] to remove.
+    * @return Future.
+    */
   def deleteActiveTask(taskid: Int) : Future[ReplyDeleteActiveTask] = {
     sendRequest(RequestDeleteActiveTask(taskid)).mapTo[ReplyDeleteActiveTask]
   }
