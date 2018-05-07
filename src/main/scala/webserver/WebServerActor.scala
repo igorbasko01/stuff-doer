@@ -293,6 +293,11 @@ class WebServerActor(hostname: String,
     */
   def startTask(taskid: Int, priority: Int) : Route = {
 
+    //TODO: Check if active_task table is empty.
+    //TODO: If not empty, execute stop task algorithm.
+    //TODO: Request remaining time.
+    //TODO: Start task.
+
     val startTaskRep = sendRequest(BaschedRequest.RequestRemainingTimeInPomodoro(taskid,priority))
       .mapTo[BaschedRequest.ReplyRemainingTimeInPomodoro]
       .flatMap(rep => {
