@@ -437,8 +437,8 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     */
   def replyActiveTaskDetails(r: DatabaseActor.QueryResult) : Unit = {
     val reply = r match {
-      case QueryResult(_, Some(result), "", 0) => (SUCCESS, listToActiveTask(result.head))
-      case _ => (ERROR, ActiveTask(0, "", "", 0))
+      case QueryResult(_, Some(result), "", 0) => ReplyActiveTaskDetails(SUCCESS, listToActiveTask(result.head))
+      case _ => ReplyActiveTaskDetails(ERROR, ActiveTask(0, "", "", 0))
     }
 
     replyTo ! reply
@@ -457,12 +457,12 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     replyTo = sender()
     handleReply = replyDeleteActiveTask
 
-    db ! DatabaseActor.QueryDB(0, s"DELETE FROM ${Basched.TABLE_NAME_ACTIVE_TASK} WHERE TSKID=$taskid")
+    db ! DatabaseActor.QueryDB(0, s"DELETE FROM ${Basched.TABLE_NAME_ACTIVE_TASK} WHERE TSKID=$taskid", update = true)
   }
 
   def replyDeleteActiveTask(r: DatabaseActor.QueryResult) : Unit = {
     val reply = r match {
-      case QueryResult(_, Some(result), "", 0) => ReplyDeleteActiveTask(SUCCESS)
+      case QueryResult(_, Some(_), _, 0) => ReplyDeleteActiveTask(SUCCESS)
       case _ => ReplyDeleteActiveTask(ERROR)
     }
 
