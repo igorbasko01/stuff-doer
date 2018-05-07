@@ -83,7 +83,6 @@ function resetIntervals(pomodoroDuration) {
 
 function stopTimer(currentTime) {
     clearInterval(timer);
-//    return commitRecord(currentTime);
     return stopTaskRequest();
 }
 
@@ -114,7 +113,6 @@ function timerEnds() {
 function handleCommitInterval(currentTime) {
     if (currentTime > intervalEnd) {
         pingTask();
-//        commitRecord(currentTime);
         resetCommitInterval(currentTime);
     }
 
@@ -125,30 +123,6 @@ function pingTask() {
     console.log("Ping !");
     makeRequest('POST', "http://localhost:9080/basched/pingTask?taskid="+currentTask.id)
     .catch(logHttpError);
-}
-
-// It means that it adds a row to the RECORDS table.
-function commitRecord(currentTime) {
-
-    var taskid = currentTask.id;
-    var timestamp = currentTime;
-    // Calculate how much time the duration of the interval was.
-    // The max length of an interval without the part of the time that passed.
-    var duration = intervalToUpdate_ms - Math.max(0, intervalEnd - currentTime);
-    var roundedDuration = Math.round(duration/1000)*1000;
-
-    return makeRequest('POST',
-        "http://localhost:9080/basched/addRecord?taskid="+taskid+"&timestamp="+timestamp+"&duration="+roundedDuration)
-        .then(handleRecordCommitResponse)
-        .catch(logHttpError);
-}
-
-function handleRecordCommitResponse(responseObject) {
-    if (responseObject.readyState == 4 && responseObject.status == 201) {
-        console.log("Record Committed !");
-    } else if (responseObject.readyState == 4) {
-        console.log("Could not commit record !");
-    }
 }
 
 // Display the remaining pomodoro time in a pretty way :)
