@@ -334,24 +334,32 @@ class WebServerActor(hostname: String,
     * @return Route.
     */
   def stopTask(taskid: Int) : Route = {
+    onSuccess(stopTaskLogic(taskid)) {
+      case ReplyDeleteActiveTask(SUCCESS) => complete(StatusCodes.OK)
+      case _ => complete(StatusCodes.NotFound)
+    }
+  }
 
+  /**
+    * Runs the logic to stop a specific task.
+    * @param taskid The [[Task.id]] to stop.
+    * @return a future with the result.
+    */
+  def stopTaskLogic(taskid: Int) : Future[ReplyDeleteActiveTask] = {
     implicit val ec: ExecutionContext = context.dispatcher
 
     val response = for {
       updateLastPing <- sendRequest(BaschedRequest.RequestUpdateLastPing(taskid)).mapTo[ReplyUpdateLastPing]
       activeTaskDetails <- if (updateLastPing.response == BaschedRequest.UPDATED) getActiveTaskDetails(taskid)
-                          else Future.successful(ReplyActiveTaskDetails(ERROR,ActiveTask(0,"","",0)))
+      else Future.successful(ReplyActiveTaskDetails(ERROR,ActiveTask(0,"","",0)))
       storeTaskDetails <- if (activeTaskDetails.status == BaschedRequest.SUCCESS)
-                            storeTaskDetailsInRecordsTable(convertActiveTaskToStore(activeTaskDetails.activeTask))
-                          else Future.successful(ReplyAddRecord(ERROR))
+        storeTaskDetailsInRecordsTable(convertActiveTaskToStore(activeTaskDetails.activeTask))
+      else Future.successful(ReplyAddRecord(ERROR))
       deleteTask <- if (storeTaskDetails.response == BaschedRequest.ADDED) deleteActiveTask(taskid)
-                    else Future.successful(ReplyDeleteActiveTask(ERROR))
+      else Future.successful(ReplyDeleteActiveTask(ERROR))
     } yield deleteTask
 
-    onSuccess(response) {
-      case ReplyDeleteActiveTask(SUCCESS) => complete(StatusCodes.OK)
-      case _ => complete(StatusCodes.NotFound)
-    }
+    response
   }
 
   /**
