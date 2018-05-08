@@ -67,6 +67,9 @@ object BaschedRequest {
   case class RequestDeleteActiveTask(taskid: Int) extends Message
   case class ReplyDeleteActiveTask(response: Int)
 
+  case object RequestActiveTasks extends Message
+  case class ReplyActiveTasks(status: Int, activeTasks: List[ActiveTask])
+
   /**
     * Returns a [[Props]] object with instantiated [[BaschedRequest]] class.
     * @param db The [[DatabaseActor]] that the queries will be sent to.
@@ -100,6 +103,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     case req: RequestUpdateLastPing => requestUpdateLastPing(req)
     case req: RequestActiveTaskDetails => requestActiveTaskDetails(req.taskid)
     case req: RequestDeleteActiveTask => requestDeleteActiveTask(req.taskid)
+    case RequestActiveTasks => requestActiveTasks()
     case RequestTaskDetails(taskid) => requestTaskDetails(taskid)
     case req: RequestTaskStatusUpdate => requestTaskStatusUpdate(req.taskid, req.newStatus)
     case RequestUpdateAllWindowFinishedToReady => requestUpdateAllWindowFinishedToReady()
@@ -459,6 +463,22 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     val reply = r match {
       case QueryResult(_, Some(_), _, 0) => ReplyDeleteActiveTask(SUCCESS)
       case _ => ReplyDeleteActiveTask(ERROR)
+    }
+
+    replyTo ! reply
+  }
+
+  def requestActiveTasks() : Unit = {
+    replyTo = sender()
+    handleReply = replyActiveTasks
+
+    db ! DatabaseActor.QueryDB(0, s"SELECT TSKID, START, LAST_PING, INITIAL_DURATION FROM ${Basched.TABLE_NAME_ACTIVE_TASK}")
+  }
+
+  def replyActiveTasks(r: DatabaseActor.QueryResult) : Unit = {
+    val reply = r match {
+      case QueryResult(_, Some(result), _, 0) => ReplyActiveTasks(SUCCESS, result.map(listToActiveTask).toList)
+      case _ => ReplyActiveTasks(ERROR, List.empty[BaschedRequest.ActiveTask])
     }
 
     replyTo ! reply
