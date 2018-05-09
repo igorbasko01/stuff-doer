@@ -94,6 +94,8 @@ class WebServerActor(hostname: String,
         } ~
         path("basched" / "getRemainingPomodoroTime") {
           parameters('taskid, 'priority) { (taskid, priority) =>
+            //TODO: Need to check if there are tasks in the active_task table, if so, commit them to records table.
+            //TODO: Then run the calculation of the remaining time.
             val response = sendRequest(BaschedRequest.RequestRemainingTimeInPomodoro(taskid.toInt,priority.toInt))
               .mapTo[BaschedRequest.ReplyRemainingTimeInPomodoro]
 
@@ -286,30 +288,60 @@ class WebServerActor(hostname: String,
     }
   }
 
-  /** Start a task
+  /** Start a task, should stop all active tasks if exist.
     * @param taskid The [[Task.id]]
     * @param priority The [[Task.priority]]
     * @return Route.
     */
   def startTask(taskid: Int, priority: Int) : Route = {
+    implicit val ec: ExecutionContext = context.dispatcher
 
-    //TODO: Check if active_task table is empty.
-    //TODO: If not empty, execute stop task algorithm.
-    //TODO: Request remaining time.
-    //TODO: Start task.
+    val response = for {
+      activeTasks <- sendRequest(BaschedRequest.RequestActiveTasks).mapTo[BaschedRequest.ReplyActiveTasks]
+      stopTasks <- if (activeTasks.activeTasks.nonEmpty) stopActiveTasks(activeTasks.activeTasks, updateLastPing = false)
+      else Future.successful(List(ReplyDeleteActiveTask(SUCCESS)))
+      remainingTime <- if (stopTasks.forall(_.response == SUCCESS)) requestRemainingTime(taskid, priority)
+      else Future.successful(ReplyRemainingTimeInPomodoro(0))
+      startTask <- requestStartTask(taskid, remainingTime.duration)
+    } yield startTask
 
-    val startTaskRep = sendRequest(BaschedRequest.RequestRemainingTimeInPomodoro(taskid,priority))
-      .mapTo[BaschedRequest.ReplyRemainingTimeInPomodoro]
-      .flatMap(rep => {
-
-      sendRequest(BaschedRequest.RequestStartTask(taskid, Basched.POMODORO_MAX_DURATION_MS - rep.duration))
-        .mapTo[BaschedRequest.ReplyStartTask]
-    })(context.dispatcher)
-
-    onSuccess(startTaskRep) {
+    onSuccess(response) {
       case BaschedRequest.ReplyStartTask(ADDED) => complete(StatusCodes.OK)
       case _ => complete(StatusCodes.NotFound)
     }
+  }
+
+  /**
+    * Will stop all provided active tasks
+    * @param activeTasks A list of [[ActiveTask]]
+    * @param updateLastPing Should we update now the last ping or not. Used when the user pressed the stop button
+    *                       (then yes), if it happened because of a "stuck" task then the last ping shouldn't be updated.
+    * @return A future with the reply of success or failure.
+    */
+  def stopActiveTasks(activeTasks: List[ActiveTask], updateLastPing: Boolean = true): Future[List[ReplyDeleteActiveTask]] = {
+    implicit val ec: ExecutionContext = context.dispatcher
+    val listOfFutures = activeTasks.map(task => stopTaskLogic(task.taskid, updateLastPing))
+    Future.sequence(listOfFutures).mapTo[List[ReplyDeleteActiveTask]]
+  }
+
+  /**
+    * A wrapper function to send a request to get the remaining time of a task.
+    * @param taskid [[Task.id]]
+    * @param priority [[Task.priority]]
+    * @return Future with the remaining time.
+    */
+  def requestRemainingTime(taskid: Int, priority: Int) : Future[ReplyRemainingTimeInPomodoro] = {
+    sendRequest(RequestRemainingTimeInPomodoro(taskid,priority)).mapTo[ReplyRemainingTimeInPomodoro]
+  }
+
+  /**
+    * Sends a request to start a task.
+    * @param taskid [[Task.id]]
+    * @param initialDuration The duration that the task already did.
+    * @return Reply if the start succeeded or failed.
+    */
+  def requestStartTask(taskid: Int, initialDuration: Long) : Future[ReplyStartTask] = {
+    sendRequest(RequestStartTask(taskid, Basched.POMODORO_MAX_DURATION_MS - initialDuration)).mapTo[ReplyStartTask]
   }
 
   /**
@@ -343,13 +375,15 @@ class WebServerActor(hostname: String,
   /**
     * Runs the logic to stop a specific task.
     * @param taskid The [[Task.id]] to stop.
-    * @return a future with the result.
+    * @param updateLastPing Do it needs to update the ping one last time or not. Explained in [[stopActiveTasks()]]
+    * @return A response if it was able to delete the active task or not.
     */
-  def stopTaskLogic(taskid: Int) : Future[ReplyDeleteActiveTask] = {
+  def stopTaskLogic(taskid: Int, updateLastPing: Boolean = true) : Future[ReplyDeleteActiveTask] = {
     implicit val ec: ExecutionContext = context.dispatcher
 
     val response = for {
-      updateLastPing <- sendRequest(BaschedRequest.RequestUpdateLastPing(taskid)).mapTo[ReplyUpdateLastPing]
+      updateLastPing <- if (updateLastPing) sendRequest(RequestUpdateLastPing(taskid)).mapTo[ReplyUpdateLastPing]
+      else Future.successful(ReplyUpdateLastPing(UPDATED))
       activeTaskDetails <- if (updateLastPing.response == BaschedRequest.UPDATED) getActiveTaskDetails(taskid)
       else Future.successful(ReplyActiveTaskDetails(ERROR,ActiveTask(0,"","",0)))
       storeTaskDetails <- if (activeTaskDetails.status == BaschedRequest.SUCCESS)
