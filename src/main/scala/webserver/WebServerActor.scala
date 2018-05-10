@@ -94,7 +94,8 @@ class WebServerActor(hostname: String,
         } ~
         path("basched" / "getRemainingPomodoroTime") {
           parameters('taskid, 'priority) { (taskid, priority) =>
-            //TODO: Need to check if there are tasks in the active_task table, if so, commit them to records table.
+            //TODO: Query the duration of an active task.
+            //TODO: Query the duration of the task from records.
             //TODO: Then run the calculation of the remaining time.
             val response = sendRequest(BaschedRequest.RequestRemainingTimeInPomodoro(taskid.toInt,priority.toInt))
               .mapTo[BaschedRequest.ReplyRemainingTimeInPomodoro]

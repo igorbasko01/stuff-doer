@@ -42,6 +42,9 @@ object BaschedRequest {
   case class RequestRemainingTimeInPomodoro(taskId: Int, priority: Int) extends Message
   case class ReplyRemainingTimeInPomodoro(duration: Long)
 
+  case class RequestHistoricalTaskDuration(taskId: Int) extends Message
+  case class ReplyHistoricalTaskDuration(duration: Long)
+
   case class RequestUpdatePmdrCountInTask(taskId: Int, pmdrsToAdd: Int) extends Message
   case class ReplyUpdatePmdrCountInTask(response: Int)
 
@@ -279,6 +282,30 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     val numOfPomodorosDone = totalDuration / Basched.POMODORO_MAX_DURATION_MS
     val remainingTime = Basched.POMODORO_MAX_DURATION_MS - (totalDuration - (numOfPomodorosDone * Basched.POMODORO_MAX_DURATION_MS))
     replyTo ! ReplyRemainingTimeInPomodoro(remainingTime)
+  }
+
+  /**
+    * Request the total duration of a [[Task]] from the Records table.
+    * @param taskId The [[Task.id]] to query.
+    */
+  def requestHistoricalTaskDuration(taskId: Int) : Unit = {
+    replyTo = sender()
+    handleReply = replyHistoricalTaskDuration
+    db ! DatabaseActor.QueryDB(0, s"SELECT SUM(DURATION_MS) FROM ${Basched.TABLE_NAME_RECORDS} " +
+      s"WHERE TSKID = $taskId")
+  }
+
+  /**
+    * Reply the total duration of a [[Task]] from the records table.
+    * @param r The result from the [[DatabaseActor]]
+    */
+  def replyHistoricalTaskDuration(r: DatabaseActor.QueryResult) : Unit = {
+    val totalDuration = Try(r.result.get.head.head.toLong) match {
+      case Success(x) => x
+      case _ => 0
+    }
+
+    replyTo ! ReplyHistoricalTaskDuration(totalDuration)
   }
 
   /**
