@@ -68,6 +68,7 @@ function setStartStopButtonState(newState) {
 }
 
 function startTimer() {
+    startTaskRequest();
     getRemainingTime(resetIntervals);
 }
 
@@ -82,7 +83,7 @@ function resetIntervals(pomodoroDuration) {
 
 function stopTimer(currentTime) {
     clearInterval(timer);
-    return commitRecord(currentTime);
+    return stopTaskRequest();
 }
 
 // Sets when the commit interval should happen.
@@ -111,35 +112,17 @@ function timerEnds() {
 // Checks if an interval passed and commits the work to the server.
 function handleCommitInterval(currentTime) {
     if (currentTime > intervalEnd) {
-        commitRecord(currentTime);
+        pingTask();
         resetCommitInterval(currentTime);
     }
 
     displayTime(intervalEnd - currentTime, $("#intervalTime"));
 }
 
-// It means that it adds a row to the RECORDS table.
-function commitRecord(currentTime) {
-
-    var taskid = currentTask.id;
-    var timestamp = currentTime;
-    // Calculate how much time the duration of the interval was.
-    // The max length of an interval without the part of the time that passed.
-    var duration = intervalToUpdate_ms - Math.max(0, intervalEnd - currentTime);
-    var roundedDuration = Math.round(duration/1000)*1000;
-
-    return makeRequest('POST',
-        "http://localhost:9080/basched/addRecord?taskid="+taskid+"&timestamp="+timestamp+"&duration="+roundedDuration)
-        .then(handleRecordCommitResponse)
-        .catch(logHttpError);
-}
-
-function handleRecordCommitResponse(responseObject) {
-    if (responseObject.readyState == 4 && responseObject.status == 201) {
-        console.log("Record Committed !");
-    } else if (responseObject.readyState == 4) {
-        console.log("Could not commit record !");
-    }
+function pingTask() {
+    console.log("Ping !");
+    makeRequest('POST', "http://localhost:9080/basched/pingTask?taskid="+currentTask.id)
+    .catch(logHttpError);
 }
 
 // Display the remaining pomodoro time in a pretty way :)
@@ -263,6 +246,16 @@ function finishTask(id) {
 
     makeRequest('POST', "http://localhost:9080/basched/finishTask?taskid="+id)
     .then(requestUnfinishedTasks)
+    .catch(logHttpError);
+}
+
+function startTaskRequest() {
+    makeRequest('POST', "http://localhost:9080/basched/startTask?taskid="+currentTask.id+"&priority="+currentTask.priority)
+    .catch(logHttpError);
+}
+
+function stopTaskRequest() {
+    return makeRequest('POST', "http://localhost:9080/basched/stopTask?taskid="+currentTask.id)
     .catch(logHttpError);
 }
 

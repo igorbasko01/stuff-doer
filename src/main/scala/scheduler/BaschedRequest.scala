@@ -25,6 +25,7 @@ object BaschedRequest {
   val DUPLICATE = 1
   val ERROR = 2
   val UPDATED = 3
+  val SUCCESS = 4
   case class ReplyAddTask(response: Int) extends Message
 
   case object RequestAllUnfinishedTasks extends Message
@@ -41,6 +42,9 @@ object BaschedRequest {
   case class RequestRemainingTimeInPomodoro(taskId: Int, priority: Int) extends Message
   case class ReplyRemainingTimeInPomodoro(duration: Long)
 
+  case class RequestHistoricalTaskDuration(taskId: Int) extends Message
+  case class ReplyHistoricalTaskDuration(duration: Long)
+
   case class RequestUpdatePmdrCountInTask(taskId: Int, pmdrsToAdd: Int) extends Message
   case class ReplyUpdatePmdrCountInTask(response: Int)
 
@@ -52,6 +56,22 @@ object BaschedRequest {
 
   case object RequestUpdateAllWindowFinishedToReady extends Message
   case class ReplyUpdateAllWindowFinishedToReady(response: Int)
+
+  case class RequestStartTask(taskid: Int, initialDuration: Long) extends Message
+  case class ReplyStartTask(response: Int)
+
+  case class RequestUpdateLastPing(taskid: Int) extends Message
+  case class ReplyUpdateLastPing(response: Int)
+
+  case class RequestActiveTaskDetails(taskid: Int) extends Message
+  case class ActiveTask(taskid: Int, startTimestamp: String, endTimestamp: String, initDuration: Long)
+  case class ReplyActiveTaskDetails(status: Int, activeTask: ActiveTask)
+
+  case class RequestDeleteActiveTask(taskid: Int) extends Message
+  case class ReplyDeleteActiveTask(response: Int)
+
+  case object RequestActiveTasks extends Message
+  case class ReplyActiveTasks(status: Int, activeTasks: List[ActiveTask])
 
   /**
     * Returns a [[Props]] object with instantiated [[BaschedRequest]] class.
@@ -81,7 +101,13 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     case RequestAddProject(prjName) => requestAddProject(prjName)
     case RequestAllUnfinishedTasks => queryAllUnfinishedTasks()
     case RequestUpdatePmdrCountInTask(taskid, pom) => requestUpdatePmdrCount(taskid, pom)
+    case req: RequestStartTask => requestStartTask(req)
     case req: RequestRemainingTimeInPomodoro => queryRemainingTimeInPomodoro(req.taskId,req.priority)
+    case req: RequestUpdateLastPing => requestUpdateLastPing(req)
+    case req: RequestActiveTaskDetails => requestActiveTaskDetails(req.taskid)
+    case req: RequestDeleteActiveTask => requestDeleteActiveTask(req.taskid)
+    case req: RequestHistoricalTaskDuration => requestHistoricalTaskDuration(req.taskId)
+    case RequestActiveTasks => requestActiveTasks()
     case RequestTaskDetails(taskid) => requestTaskDetails(taskid)
     case req: RequestTaskStatusUpdate => requestTaskStatusUpdate(req.taskid, req.newStatus)
     case RequestUpdateAllWindowFinishedToReady => requestUpdateAllWindowFinishedToReady()
@@ -260,6 +286,30 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
   }
 
   /**
+    * Request the total duration of a [[Task]] from the Records table.
+    * @param taskId The [[Task.id]] to query.
+    */
+  def requestHistoricalTaskDuration(taskId: Int) : Unit = {
+    replyTo = sender()
+    handleReply = replyHistoricalTaskDuration
+    db ! DatabaseActor.QueryDB(0, s"SELECT SUM(DURATION_MS) FROM ${Basched.TABLE_NAME_RECORDS} " +
+      s"WHERE TSKID = $taskId")
+  }
+
+  /**
+    * Reply the total duration of a [[Task]] from the records table.
+    * @param r The result from the [[DatabaseActor]]
+    */
+  def replyHistoricalTaskDuration(r: DatabaseActor.QueryResult) : Unit = {
+    val totalDuration = Try(r.result.get.head.head.toLong) match {
+      case Success(x) => x
+      case _ => 0
+    }
+
+    replyTo ! ReplyHistoricalTaskDuration(totalDuration)
+  }
+
+  /**
     * Request to update the [[Task]]s number of [[Task.pomodoros]].
     * @param taskId The [[Task.id]] to update.
     * @param pmdrsToAdd The amount of [[Task.pomodoros]] to add.
@@ -347,5 +397,118 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
       case QueryResult(_, _, _, 0) => replyTo ! ReplyUpdateAllWindowFinishedToReady(BaschedRequest.UPDATED)
       case _ => replyTo ! ReplyUpdateAllWindowFinishedToReady(BaschedRequest.ERROR)
     }
+  }
+
+  /**
+    * Starts a [[Task]], by adding it to the active tasks table.
+    * @param req The [[RequestStartTask]] request parameters.
+    */
+  def requestStartTask(req: RequestStartTask) : Unit = {
+    replyTo = sender()
+    handleReply = replyStartTask
+
+    db ! DatabaseActor.QueryDB(0, s"INSERT INTO ${Basched.TABLE_NAME_ACTIVE_TASK} " +
+      s"(TSKID, INITIAL_DURATION) " +
+      s"VALUES (${req.taskid}, ${req.initialDuration})", update = true)
+  }
+
+  /**
+    * Handles the reply of the [[requestStartTask()]] function.
+    * @param r The [[DatabaseActor.QueryResult]]
+    */
+  def replyStartTask(r: DatabaseActor.QueryResult) : Unit = {
+    r match {
+      case QueryResult(_, _, _, 0) => replyTo ! ReplyStartTask(BaschedRequest.ADDED)
+      case _ => replyTo ! ReplyStartTask(BaschedRequest.ERROR)
+    }
+  }
+
+  /**
+    * Update the last time a [[Task]] was pinged.
+    * @param req The [[RequestUpdateLastPing]]
+    */
+  def requestUpdateLastPing(req: RequestUpdateLastPing) : Unit = {
+    replyTo = sender()
+    handleReply = replyUpdateLastPing
+
+    db ! DatabaseActor.QueryDB(0, s"UPDATE ${Basched.TABLE_NAME_ACTIVE_TASK} SET LAST_PING=CURRENT_TIMESTAMP() " +
+      s"WHERE TSKID=${req.taskid}", update = true)
+  }
+
+  /**
+    * Handles the reply of the [[requestUpdateLastPing()]] function.
+    * @param r The [[DatabaseActor.QueryResult]]
+    */
+  def replyUpdateLastPing(r: DatabaseActor.QueryResult) : Unit = {
+    r match {
+      case QueryResult(_, _, _, 0) => replyTo ! ReplyUpdateLastPing(BaschedRequest.UPDATED)
+      case _ => replyTo ! ReplyUpdateLastPing(BaschedRequest.ERROR)
+    }
+  }
+
+  /**
+    * Queries a specific task from the [[Basched.TABLE_NAME_ACTIVE_TASK]] table.
+    * @param taskId [[Task.id]] to query.
+    */
+  def requestActiveTaskDetails(taskId: Int) : Unit = {
+    replyTo = sender()
+    handleReply = replyActiveTaskDetails
+
+    db ! DatabaseActor.QueryDB(0, s"SELECT TSKID, START, LAST_PING, INITIAL_DURATION " +
+      s"FROM ${Basched.TABLE_NAME_ACTIVE_TASK} WHERE TSKID = $taskId")
+  }
+
+  /**
+    * Handle the reply of [[RequestActiveTaskDetails]]
+    * @param r The [[DatabaseActor.QueryResult]]
+    */
+  def replyActiveTaskDetails(r: DatabaseActor.QueryResult) : Unit = {
+    val reply = r match {
+      case QueryResult(_, Some(result), "", 0) if result.nonEmpty => ReplyActiveTaskDetails(SUCCESS, listToActiveTask(result.head))
+      case _ => ReplyActiveTaskDetails(ERROR, ActiveTask(0, "", "", 0))
+    }
+
+    replyTo ! reply
+  }
+
+  /**
+    * Parse a list of strings to an ActiveTask object.
+    * @param stringList A list of strings that contains all the necessary fields to create an ActiveTask.
+    * @return An ActiveTask object.
+    */
+  def listToActiveTask(stringList: List[String]) : ActiveTask = {
+    ActiveTask(stringList.head.toInt, stringList(1), stringList(2), stringList(3).toLong)
+  }
+
+  def requestDeleteActiveTask(taskid: Int) : Unit = {
+    replyTo = sender()
+    handleReply = replyDeleteActiveTask
+
+    db ! DatabaseActor.QueryDB(0, s"DELETE FROM ${Basched.TABLE_NAME_ACTIVE_TASK} WHERE TSKID=$taskid", update = true)
+  }
+
+  def replyDeleteActiveTask(r: DatabaseActor.QueryResult) : Unit = {
+    val reply = r match {
+      case QueryResult(_, Some(_), _, 0) => ReplyDeleteActiveTask(SUCCESS)
+      case _ => ReplyDeleteActiveTask(ERROR)
+    }
+
+    replyTo ! reply
+  }
+
+  def requestActiveTasks() : Unit = {
+    replyTo = sender()
+    handleReply = replyActiveTasks
+
+    db ! DatabaseActor.QueryDB(0, s"SELECT TSKID, START, LAST_PING, INITIAL_DURATION FROM ${Basched.TABLE_NAME_ACTIVE_TASK}")
+  }
+
+  def replyActiveTasks(r: DatabaseActor.QueryResult) : Unit = {
+    val reply = r match {
+      case QueryResult(_, Some(result), _, 0) => ReplyActiveTasks(SUCCESS, result.map(listToActiveTask).toList)
+      case _ => ReplyActiveTasks(ERROR, List.empty[BaschedRequest.ActiveTask])
+    }
+
+    replyTo ! reply
   }
 }
