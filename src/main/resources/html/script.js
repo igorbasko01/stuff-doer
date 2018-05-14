@@ -171,8 +171,9 @@ function handleTasksReply(response) {
         var taskPri = priority[tasks[i].priority];
         var button_finished = "<button id=finished_"+tasks[i].id+" onclick=finishTask("+tasks[i].id+")>FINISH</button>";
         var button_hold = createHoldButton(tasks[i]);
+        var button_pri = createPriorityChangeButtons(tasks[i]);
         var html = "<tr><td>"+prjName+"</td><td>"+taskName+"</td><td>"+taskPri+"</td><td>"+button_finished+"</td><td>"+
-            button_hold+"</td></tr>";
+            button_hold+"</td>"+button_pri+"</tr>";
         if (tasks[i].current == true) {
             current_task = html;
             currentTask = tasks[i];
@@ -195,6 +196,18 @@ function handleTasksReply(response) {
     var waitingTasks = $("#tasks_table");
     waitingTasks.append(tasksRows.join(""));
     $("#current_task").append(current_task);
+}
+
+function createPriorityChangeButtons(task) {
+    var btnUp = "<td><button id=pri_up_"+task.id+" onclick=changeTaskPriority("+task.id+",-1)>+</button></td>";
+    var btnDown = "<td><button id=pri_down_"+task.id+" onclick=changeTaskPriority("+task.id+",1)>-</button></td>";
+    var finalButtons = "";
+    if (task.priority > 0)
+        finalButtons += btnUp;
+    if (task.priority < 2)
+        finalButtons += btnDown;
+
+    return finalButtons;
 }
 
 // Gets a calculation of the remaining time in the pomodoro from the server. And executes some callback function
