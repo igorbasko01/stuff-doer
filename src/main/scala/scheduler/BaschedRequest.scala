@@ -106,6 +106,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     case req: RequestUpdateLastPing => requestUpdateLastPing(req)
     case req: RequestActiveTaskDetails => requestActiveTaskDetails(req.taskid)
     case req: RequestDeleteActiveTask => requestDeleteActiveTask(req.taskid)
+    case req: RequestHistoricalTaskDuration => requestHistoricalTaskDuration(req.taskId)
     case RequestActiveTasks => requestActiveTasks()
     case RequestTaskDetails(taskid) => requestTaskDetails(taskid)
     case req: RequestTaskStatusUpdate => requestTaskStatusUpdate(req.taskid, req.newStatus)
@@ -447,14 +448,14 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
 
   /**
     * Queries a specific task from the [[Basched.TABLE_NAME_ACTIVE_TASK]] table.
-    * @param taskid [[Task.id]] to query.
+    * @param taskId [[Task.id]] to query.
     */
-  def requestActiveTaskDetails(taskid: Int) : Unit = {
+  def requestActiveTaskDetails(taskId: Int) : Unit = {
     replyTo = sender()
     handleReply = replyActiveTaskDetails
 
     db ! DatabaseActor.QueryDB(0, s"SELECT TSKID, START, LAST_PING, INITIAL_DURATION " +
-      s"FROM ${Basched.TABLE_NAME_ACTIVE_TASK}")
+      s"FROM ${Basched.TABLE_NAME_ACTIVE_TASK} WHERE TSKID = $taskId")
   }
 
   /**
@@ -463,7 +464,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     */
   def replyActiveTaskDetails(r: DatabaseActor.QueryResult) : Unit = {
     val reply = r match {
-      case QueryResult(_, Some(result), "", 0) => ReplyActiveTaskDetails(SUCCESS, listToActiveTask(result.head))
+      case QueryResult(_, Some(result), "", 0) if result.nonEmpty => ReplyActiveTaskDetails(SUCCESS, listToActiveTask(result.head))
       case _ => ReplyActiveTaskDetails(ERROR, ActiveTask(0, "", "", 0))
     }
 

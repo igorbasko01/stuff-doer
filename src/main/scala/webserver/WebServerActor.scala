@@ -94,17 +94,7 @@ class WebServerActor(hostname: String,
         } ~
         path("basched" / "getRemainingPomodoroTime") {
           parameters('taskid, 'priority) { (taskid, priority) =>
-            //TODO: Query the duration of an active task.
-            //TODO: Query the duration of the task from records.
-            //TODO: Then run the calculation of the remaining time.
-            val response = sendRequest(BaschedRequest.RequestRemainingTimeInPomodoro(taskid.toInt,priority.toInt))
-              .mapTo[BaschedRequest.ReplyRemainingTimeInPomodoro]
-
-            onSuccess(response) {
-              case BaschedRequest.ReplyRemainingTimeInPomodoro(duration) => complete(WebServerActor.PomodoroDuration(duration))
-              case other => complete(HttpResponse(StatusCodes.NotFound,Nil,
-                HttpEntity(ContentTypes.`text/plain(UTF-8)`,s"Could not get a duration: $other")))
-            }
+            getRemainingPomodoroTime(taskid.toInt, priority.toInt)
           }
         } ~
         pathPrefix("html") {
@@ -273,6 +263,57 @@ class WebServerActor(hostname: String,
         case _ => complete(StatusCodes.NotFound)
       }
     }
+  }
+
+  /**
+    * Get the remaining time in a pomodoro of a [[Task]]
+    * @param taskId [[Task.id]]
+    * @param priority [[Task.priority]]
+    * @return Return the duration that left in the pomodoro as a [[Route]]
+    */
+  def getRemainingPomodoroTime(taskId: Int, priority: Int) : Route = {
+    implicit val ec: ExecutionContext = context.dispatcher
+
+    val resp = for {
+      activeTask <- sendRequest(RequestActiveTaskDetails(taskId)).mapTo[ReplyActiveTaskDetails]
+      histDuration <- sendRequest(RequestHistoricalTaskDuration(taskId)).mapTo[ReplyHistoricalTaskDuration]
+    } yield (activeTask, histDuration)
+
+    onSuccess(resp) {
+      case (active, hist) if active.status == SUCCESS =>
+        complete(WebServerActor.PomodoroDuration(
+          calculateRemainingDuration(extractDurationFromActiveTask(active.activeTask) + hist.duration)))
+      case (active, hist) if active.status != SUCCESS =>
+        complete(WebServerActor.PomodoroDuration(
+          calculateRemainingDuration(hist.duration)))
+      case _ => complete(StatusCodes.NotFound)
+    }
+  }
+
+  /**
+    * Calculate the duration of an active task by its start and end time.
+    * @param activeTask [[ActiveTask]]
+    * @return The duration in milliseconds.
+    */
+  def extractDurationFromActiveTask(activeTask: ActiveTask) : Long = {
+    val formatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSS")
+    val endTimestamp_ms = formatter.parseDateTime(activeTask.endTimestamp).getMillis
+    val startTimestamp_ms = formatter.parseDateTime(activeTask.startTimestamp).getMillis
+
+    endTimestamp_ms - startTimestamp_ms
+  }
+
+  /**
+    * Returns how much time left in the current pomodoro.
+    * @param totalDuration The total duration of a [[Task]]
+    * @return How much time left in the current pomodoro.
+    */
+  def calculateRemainingDuration(totalDuration: Long) : Long = {
+    val numOfPomodorosDone = totalDuration / Basched.POMODORO_MAX_DURATION_MS
+    val remainingTime = Basched.POMODORO_MAX_DURATION_MS -
+      (totalDuration - (numOfPomodorosDone * Basched.POMODORO_MAX_DURATION_MS))
+
+    remainingTime
   }
 
   /**
