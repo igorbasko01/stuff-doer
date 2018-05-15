@@ -210,6 +210,16 @@ function createPriorityChangeButtons(task) {
     return finalButtons;
 }
 
+//TODO: Stop the currently running task.
+//TODO: Update the priority.
+//TODO: Get unhandled tasks.
+function changeTaskPriority(taskid, changeDirection) {
+    if (currentTask != null && id == currentTask.id)
+        setStartStopButtonState("Stop");
+
+
+}
+
 // Gets a calculation of the remaining time in the pomodoro from the server. And executes some callback function
 // that should get the duration as a parameter.
 function getRemainingTime(callbackToRun) {

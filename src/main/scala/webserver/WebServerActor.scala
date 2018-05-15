@@ -210,8 +210,10 @@ class WebServerActor(hostname: String,
         } ~
         path("basched" / "stopTask") {
           parameters('taskid) { (taskid) => stopTask(taskid.toInt)}
+        } ~
+        path("basched" / "updatePriority") {
+          parameters('taskid, 'priority) { (taskid, priority) => updateTaskPriority(taskid.toInt, priority.toInt) }
         }
-
       }
 
   /**
@@ -238,6 +240,15 @@ class WebServerActor(hostname: String,
 
   override def receive: Receive = {
     case WebServerActor.Shutdown => context.stop(self)
+  }
+
+  def updateTaskPriority(taskid: Int, priority: Int) : Route = {
+    val reply = sendRequest(RequestUpdateTaskPriority(taskid, priority)).mapTo[ReplyUpdateTaskPriority]
+
+    onSuccess(reply) {
+      case ReplyUpdateTaskPriority(UPDATED) => complete(StatusCodes.OK)
+      case _ => complete(StatusCodes.NotFound)
+    }
   }
 
   def handleUnfinishedTasks(tasks: List[BaschedRequest.Task]) : Route = {

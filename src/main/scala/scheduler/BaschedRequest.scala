@@ -1,6 +1,7 @@
 package scheduler
 
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props}
+import akka.http.javadsl.model.ws.Message
 import database.DatabaseActor
 import database.DatabaseActor.QueryResult
 import org.joda.time.format.DateTimeFormat
@@ -73,6 +74,9 @@ object BaschedRequest {
   case object RequestActiveTasks extends Message
   case class ReplyActiveTasks(status: Int, activeTasks: List[ActiveTask])
 
+  case class RequestUpdateTaskPriority(taskid: Int, priority: Int) extends Message
+  case class ReplyUpdateTaskPriority(response: Int)
+
   /**
     * Returns a [[Props]] object with instantiated [[BaschedRequest]] class.
     * @param db The [[DatabaseActor]] that the queries will be sent to.
@@ -107,6 +111,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     case req: RequestActiveTaskDetails => requestActiveTaskDetails(req.taskid)
     case req: RequestDeleteActiveTask => requestDeleteActiveTask(req.taskid)
     case req: RequestHistoricalTaskDuration => requestHistoricalTaskDuration(req.taskId)
+    case req: RequestUpdateTaskPriority => requestUpdateTaskPriority(req.taskid, req.priority)
     case RequestActiveTasks => requestActiveTasks()
     case RequestTaskDetails(taskid) => requestTaskDetails(taskid)
     case req: RequestTaskStatusUpdate => requestTaskStatusUpdate(req.taskid, req.newStatus)
@@ -507,6 +512,23 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     val reply = r match {
       case QueryResult(_, Some(result), _, 0) => ReplyActiveTasks(SUCCESS, result.map(listToActiveTask).toList)
       case _ => ReplyActiveTasks(ERROR, List.empty[BaschedRequest.ActiveTask])
+    }
+
+    replyTo ! reply
+  }
+
+  def requestUpdateTaskPriority(taskid: Int, priority: Int) : Unit = {
+    replyTo = sender()
+    handleReply = replyUpdateTaskPriority
+
+    db ! DatabaseActor.QueryDB(0, s"UPDATE ${Basched.TABLE_NAME_TASKS} SET PRIORITY=$priority WHERE ID=$taskid",
+      update = true)
+  }
+
+  def replyUpdateTaskPriority(r: DatabaseActor.QueryResult) : Unit = {
+    val reply = r match {
+      case QueryResult(_, _, _, 0) => ReplyUpdateTaskPriority(BaschedRequest.UPDATED)
+      case _ => ReplyUpdateTaskPriority(BaschedRequest.ERROR)
     }
 
     replyTo ! reply
