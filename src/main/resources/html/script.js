@@ -199,8 +199,8 @@ function handleTasksReply(response) {
 }
 
 function createPriorityChangeButtons(task) {
-    var btnUp = "<td><button id=pri_up_"+task.id+" onclick=changeTaskPriority("+task.id+",-1)>+</button></td>";
-    var btnDown = "<td><button id=pri_down_"+task.id+" onclick=changeTaskPriority("+task.id+",1)>-</button></td>";
+    var btnUp = "<td><button id=pri_up_"+task.id+" onclick=changeTaskPriority("+task.id+","+(task.priority-1)+")>+</button></td>";
+    var btnDown = "<td><button id=pri_down_"+task.id+" onclick=changeTaskPriority("+task.id+","+(task.priority+1)+")>-</button></td>";
     var finalButtons = "";
     if (task.priority > 0)
         finalButtons += btnUp;
@@ -213,11 +213,14 @@ function createPriorityChangeButtons(task) {
 //TODO: Stop the currently running task.
 //TODO: Update the priority.
 //TODO: Get unhandled tasks.
-function changeTaskPriority(taskid, changeDirection) {
-    if (currentTask != null && id == currentTask.id)
+function changeTaskPriority(taskid, newPriority) {
+    // Stop the currently running task.
+    if (currentTask != null && taskid == currentTask.id)
         setStartStopButtonState("Stop");
 
-
+    makeRequest('POST', "http://localhost:9080/basched/updatePriority?taskid="+taskid+"&priority="+newPriority)
+    .then(function () { requestUnfinishedTasks(); })
+    .catch(logHttpError);
 }
 
 // Gets a calculation of the remaining time in the pomodoro from the server. And executes some callback function
