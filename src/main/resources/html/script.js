@@ -25,16 +25,16 @@ function notifyMe() {
   if (Notification.permission !== "granted")
     Notification.requestPermission();
   else {
-    var notification = new Notification('Notification title', {
+    var notification = new Notification('Timer Ended !', {
 //      icon: 'http://cdn.sstatic.net/stackexchange/img/logos/so/so-icon.png',
-      body: "Timer Ended !",
+      body: "Well Done !",
     });
 
     var audio = new Audio("resources/mp3/Alarm.mp3");
     audio.play();
 
     notification.onclick = function () {
-        window.location.href = 'http://localhost:9080/html/index.html';
+        window.location.href = 'http://localhost:9080/';
 //      window.open("http://localhost:9080/html/index.html");
     };
   }
