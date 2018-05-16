@@ -210,9 +210,6 @@ function createPriorityChangeButtons(task) {
     return finalButtons;
 }
 
-//TODO: Stop the currently running task.
-//TODO: Update the priority.
-//TODO: Get unhandled tasks.
 function changeTaskPriority(taskid, newPriority) {
     // Stop the currently running task.
     if (currentTask != null && taskid == currentTask.id)
