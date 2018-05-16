@@ -4,8 +4,8 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function addTask() {
-    var task_input = $("#task_name");
-    if (task_input.val().trim() != "") {
+    var task_input = $("#task_name").val().trim();
+    if (task_input != "") {
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function() {
             if (this.readyState == 4 && this.status == 201) {
@@ -18,9 +18,9 @@ function addTask() {
         };
 
         var projId = $("#project").val();
-        var projName = $("#task_name").val();
-        var projPri = $("#priority").val();
-        xhttp.open("POST", "http://localhost:9080/basched/addTask?prj="+projId+"&name="+projName+"&pri="+projPri, true);
+        var taskName = task_input;
+        var taskPri = $("#priority").val();
+        xhttp.open("POST", "http://localhost:9080/basched/addTask?prj="+projId+"&name="+taskName+"&pri="+taskPri, true);
         xhttp.send();
     } else {
         $("#message").text("The task name is empty.");
