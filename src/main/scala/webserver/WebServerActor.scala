@@ -157,7 +157,9 @@ class WebServerActor(hostname: String,
 
               onSuccess(response) {
                 case BaschedRequest.ReplyTaskDetails(task) =>
-                  val windowFinished = (task.pomodoros % Basched.NUM_OF_PMDRS_PER_PRIORITY(task.priority)) == 0
+                  val windowFinished = if (task.priority == Basched.PRIORITY("im")) false
+                                      else (task.pomodoros % Basched.NUM_OF_PMDRS_PER_PRIORITY(task.priority)) == 0
+
                   if (windowFinished) {
                     val updateResponse = sendRequest(BaschedRequest.RequestTaskStatusUpdate(task.id,
                       Basched.STATUS("WINDOW_FINISHED"))).mapTo[BaschedRequest.ReplyTaskStatusUpdate]
