@@ -7,6 +7,8 @@ import utils.Configuration
 /**
   * Created by igor on 22/03/17.
   */
+case class propsWithName(props: Props, actorName: String)
+
 object Main extends App {
   println("Loading configuration")
   val config = new Configuration

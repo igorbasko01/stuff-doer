@@ -2,6 +2,7 @@ package main
 
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props, Terminated}
 import database.DatabaseActor
+import scheduler.Basched
 import utils.Configuration
 
 import scala.collection.mutable.ArrayBuffer
@@ -17,7 +18,8 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
 
   private val watched = ArrayBuffer.empty[ActorRef]
 
-  private val dataBase = context.actorOf(DatabaseActor.props(config), "database.DatabaseActor")
+  private val dataBase = context.actorOf(DatabaseActor.props(config, List(propsWithName(Basched.props(config),"Basched"))),
+    "database.DatabaseActor")
   watchActor(dataBase)
 
   override def preStart(): Unit = {
