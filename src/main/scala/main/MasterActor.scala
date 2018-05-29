@@ -2,7 +2,9 @@ package main
 
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props, Terminated}
 import database.DatabaseActor
+import scheduler.Basched
 import utils.Configuration
+import webserver.WebServerActor
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -17,8 +19,12 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
 
   private val watched = ArrayBuffer.empty[ActorRef]
 
-  private val dataBase = context.actorOf(DatabaseActor.props(config), "database.DatabaseActor")
+  private val dataBase = context.actorOf(DatabaseActor.props(config, List(PropsWithName(Basched.props(config),"Basched"))),
+    "database.DatabaseActor")
+
+  private val webserver = context.actorOf(WebServerActor.props(config.hostname, config.portNum, dataBase),"Webserver")
   watchActor(dataBase)
+  watchActor(webserver)
 
   override def preStart(): Unit = {
     log.info("Starting Master Actor...")
@@ -50,7 +56,7 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
     */
   def controlledTermination(): Unit = {
     // If webserver or database actor is not alive stop all the other actors and stop the application.
-    if (!watched.contains(dataBase)) watched.foreach(_ ! PoisonPill)
+    if (!watched.contains(dataBase) || !watched.contains(webserver)) watched.foreach(_ ! PoisonPill)
     if (watched.isEmpty) context.stop(self)
   }
 }

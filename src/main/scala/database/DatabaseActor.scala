@@ -5,8 +5,8 @@ import java.sql.{Connection, DriverManager, ResultSet}
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props}
 import akka.stream._
 import database.DatabaseActor.QueryResult
+import main.PropsWithName
 import org.h2.jdbc.JdbcSQLException
-import scheduler.Basched
 import utils.Configuration
 
 import scala.collection.mutable.ArrayBuffer
@@ -24,19 +24,20 @@ object DatabaseActor {
   case class IsTableExists(tableName: String)
   case class TableExistsResult(tableName: String, isExist: Boolean)
 
-  def props(config: Configuration): Props = Props(new DatabaseActor(config))
+  def props(config: Configuration, clientProps: List[PropsWithName]): Props =
+    Props(new DatabaseActor(config, clientProps))
 }
 
-class DatabaseActor(config: Configuration) extends Actor with ActorLogging {
+class DatabaseActor(config: Configuration, clientsProps: List[PropsWithName]) extends Actor with ActorLogging {
 
   val materializer = ActorMaterializer()(context)
 
-  val clients: ArrayBuffer[ActorRef] = ArrayBuffer.empty
+  var clients: List[ActorRef] = List.empty
 
   override def preStart(): Unit = {
     log.info("Starting...")
 
-    clients += context.actorOf(Basched.props(config), "Basched")
+    clients = clientsProps.map(prop => context.actorOf(prop.props,prop.actorName))
 
     log.info("Started !")
   }
