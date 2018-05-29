@@ -3,7 +3,6 @@ package scheduler
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import database.DatabaseActor
 import utils.Configuration
-import webserver.WebServerActor
 import scheduler.Basched._
 
 /**
@@ -46,7 +45,6 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
   )
 
   val db: ActorRef = context.parent
-  var webServer: ActorRef = _
 
   var requests: Map[Int, ((DatabaseActor.QueryResult) => Unit)] = Map(0 -> ((_: DatabaseActor.QueryResult) => ()))
 
@@ -54,11 +52,6 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
     log.info("Starting...")
 
     tablesCreationStmts.foreach{case (name, _) => db ! DatabaseActor.IsTableExists(name)}
-
-    webServer = context.actorOf(
-      WebServerActor.props(config.hostname, config.portNum, db),
-      "WebServerActor"
-    )
   }
 
   override def receive: Receive = {
