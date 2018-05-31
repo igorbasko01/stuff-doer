@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/igorbasko01/stuff-doer.svg?branch=master)](https://travis-ci.org/igorbasko01/stuff-doer)
 # What Is It?
 A task management program, that decides for the user on what task to work now.
 When the user adds a task to the system, he only controls the priority 
