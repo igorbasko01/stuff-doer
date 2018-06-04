@@ -9,7 +9,7 @@ function addTask() {
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function() {
             if (this.readyState == 4 && this.status == 201) {
-                $("#message").text("Task ["+task_input.val()+"] was added.");
+                $("#message").text("Task ["+task_input+"] was added.");
             } else if (this.readyState == 4 && this.status == 409) {
                 $("#message").text("Could not add task, reason: Task already exists");
             } else {
