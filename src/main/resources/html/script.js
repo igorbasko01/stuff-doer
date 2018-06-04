@@ -34,7 +34,7 @@ function notifyMe() {
     audio.play();
 
     notification.onclick = function () {
-        window.location.href = 'http://localhost:9080/';
+        window.location.href = baseURL;
 //      window.open("http://localhost:9080/html/index.html");
     };
   }
@@ -121,7 +121,7 @@ function handleCommitInterval(currentTime) {
 
 function pingTask() {
     console.log("Ping !");
-    makeRequest('POST', "http://localhost:9080/basched/pingTask?taskid="+currentTask.id)
+    makeRequest('POST', baseURL + "basched/pingTask?taskid="+currentTask.id)
     .catch(logHttpError);
 }
 
@@ -137,7 +137,7 @@ function displayTime(timeToDisplay, domObject = $("#time")) {
 }
 
 function gotoAddTaskPage() {
-    window.location.href = 'http://localhost:9080/html/AddTask.html';
+    window.location.href = baseURL + 'html/AddTask.html';
 }
 
 function createHoldButton(task) {
@@ -150,7 +150,7 @@ function toggleHold(id) {
     if (currentTask != null && id == currentTask.id)
         setStartStopButtonState("Stop");
 
-    makeRequest('POST', "http://localhost:9080/basched/toggleHold?taskid="+id)
+    makeRequest('POST', baseURL + "basched/toggleHold?taskid="+id)
         .then(requestUnfinishedTasks)
         .catch(logHttpError);
 }
@@ -215,7 +215,7 @@ function changeTaskPriority(taskid, newPriority) {
     if (currentTask != null && taskid == currentTask.id)
         setStartStopButtonState("Stop");
 
-    makeRequest('POST', "http://localhost:9080/basched/updatePriority?taskid="+taskid+"&priority="+newPriority)
+    makeRequest('POST', baseURL + "basched/updatePriority?taskid="+taskid+"&priority="+newPriority)
     .then(function () { requestUnfinishedTasks(); })
     .catch(logHttpError);
 }
@@ -227,7 +227,7 @@ function getRemainingTime(callbackToRun) {
 
     if (currentTask != null) {
         makeRequest('GET',
-            "http://localhost:9080/basched/getRemainingPomodoroTime?taskid="+currentTask.id+"&priority="+
+            baseURL + "basched/getRemainingPomodoroTime?taskid="+currentTask.id+"&priority="+
                 currentTask.priority)
             .then(function (xhr) {
                 console.log('got remaining time');
@@ -241,7 +241,7 @@ function getRemainingTime(callbackToRun) {
 function requestUnfinishedTasks() {
     console.log('requestUnfinishedTasks');
     // Get all unfinished tasks.
-    makeRequest('GET', "http://localhost:9080/basched/unfinishedtasks")
+    makeRequest('GET', baseURL + "basched/unfinishedtasks")
     .then(function (xhr) {handleTasksReply(xhr);})
     .then(function () {getRemainingTime(displayTime);})
     .catch(logHttpError);
@@ -249,7 +249,7 @@ function requestUnfinishedTasks() {
 
 function updatePomodoros(taskid, pomodorosToAdd) {
     console.log('updatePomodoros');
-    return makeRequest('POST', "http://localhost:9080/basched/updatePomodorosCount?taskid="+taskid+"&pomodorosToAdd="+
+    return makeRequest('POST', baseURL + "basched/updatePomodorosCount?taskid="+taskid+"&pomodorosToAdd="+
         pomodorosToAdd)
     .then(function () {console.log('Pomodoro updated !');})
     .catch(logHttpError);
@@ -257,7 +257,7 @@ function updatePomodoros(taskid, pomodorosToAdd) {
 
 function updateTasksWindow(taskid) {
     console.log('updateTasksWindow');
-    return makeRequest('POST', "http://localhost:9080/basched/updateTaskWindowIfNeeded?taskid="+taskid)
+    return makeRequest('POST', baseURL + "basched/updateTaskWindowIfNeeded?taskid="+taskid)
     .then(function () {console.log('updateTasksWindow finished!');})
     .catch(logHttpError);
 }
@@ -267,18 +267,18 @@ function finishTask(id) {
     if (currentTask != null && id == currentTask.id)
         setStartStopButtonState("Stop");
 
-    makeRequest('POST', "http://localhost:9080/basched/finishTask?taskid="+id)
+    makeRequest('POST', baseURL + "basched/finishTask?taskid="+id)
     .then(requestUnfinishedTasks)
     .catch(logHttpError);
 }
 
 function startTaskRequest() {
-    makeRequest('POST', "http://localhost:9080/basched/startTask?taskid="+currentTask.id+"&priority="+currentTask.priority)
+    makeRequest('POST', baseURL + "basched/startTask?taskid="+currentTask.id+"&priority="+currentTask.priority)
     .catch(logHttpError);
 }
 
 function stopTaskRequest() {
-    return makeRequest('POST', "http://localhost:9080/basched/stopTask?taskid="+currentTask.id)
+    return makeRequest('POST', baseURL + "basched/stopTask?taskid="+currentTask.id)
     .catch(logHttpError);
 }
 

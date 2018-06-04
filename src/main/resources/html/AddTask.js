@@ -20,7 +20,7 @@ function addTask() {
         var projId = $("#project").val();
         var taskName = task_input;
         var taskPri = $("#priority").val();
-        xhttp.open("POST", "http://localhost:9080/basched/addTask?prj="+projId+"&name="+taskName+"&pri="+taskPri, true);
+        xhttp.open("POST", baseURL + "basched/addTask?prj="+projId+"&name="+taskName+"&pri="+taskPri, true);
         xhttp.send();
     } else {
         $("#message").text("The task name is empty.");
@@ -43,7 +43,7 @@ function addProject() {
             }
         };
 
-        xhttp.open("POST", "http://localhost:9080/basched/addProject?projectName="+project_input);
+        xhttp.open("POST", baseURL + "basched/addProject?projectName="+project_input);
         xhttp.send();
     } else {
         $("#message").text("The project name is empty.");
@@ -69,7 +69,7 @@ function handleProjectReply(response) {
 }
 
 function gotoMainPage() {
-    window.location.href = 'http://localhost:9080';
+    window.location.href = baseURL;
 }
 
 function requestAllProjects() {
@@ -80,6 +80,6 @@ function requestAllProjects() {
         }
     };
 
-    xhttp.open("GET", "http://localhost:9080/basched/allprojects", true);
+    xhttp.open("GET", baseURL + "basched/allprojects", true);
     xhttp.send();
 }
