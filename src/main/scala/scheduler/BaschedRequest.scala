@@ -141,9 +141,11 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     handleReply = replyAddTask
 
     val escapedName = newTask.name.replace("'", "''")
+    val status = if (Basched.PRIORITY(newTask.priority) == Basched.PRIORITY("im")) Basched.STATUS("READY")
+      else Basched.STATUS("WINDOW_FINISHED")
 
     db ! DatabaseActor.QueryDB(0,s"INSERT INTO ${Basched.TABLE_NAME_TASKS} (PRJID, NAME, PRIORITY, STATUS, POMODOROS) " +
-      s"VALUES (${newTask.prjId},'$escapedName',${Basched.PRIORITY(newTask.priority)},${Basched.STATUS("READY")},0" +
+      s"VALUES (${newTask.prjId},'$escapedName',${Basched.PRIORITY(newTask.priority)},$status,0" +
       s")",update = true)
   }
 
