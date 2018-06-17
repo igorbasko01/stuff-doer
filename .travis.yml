@@ -1,1 +1,8 @@
+sudo: false
 language: java
+
+deploy:
+  provider: script
+  script: echo hello
+  on:
+    branch: master
