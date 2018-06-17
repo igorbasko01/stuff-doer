@@ -1,8 +1,14 @@
 sudo: false
 language: java
 
+services:
+  - docker
+
+after_success:
+  - docker build -t egorebasko/stuff-doer .
+
 deploy:
   provider: script
-  script: echo hello
+  script: bash deploy.sh
   on:
     branch: master
