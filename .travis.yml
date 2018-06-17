@@ -2,5 +2,5 @@ sudo: false
 language: java
 
 deploy:
-	provider: script
-	script: "echo hello"
+  provider: script
+  script: echo hello
