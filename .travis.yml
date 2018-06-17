@@ -3,4 +3,4 @@ language: java
 
 deploy:
 	provider: script
-	script: "bash deploy.sh"
+	script: "echo hello"
