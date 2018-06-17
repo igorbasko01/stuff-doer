@@ -1,4 +1,4 @@
 language: java
 deploy:
 	provider: script
-	script: bash deploy.sh
+	script: bash ./deploy.sh
