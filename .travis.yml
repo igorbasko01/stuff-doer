@@ -5,7 +5,7 @@ services:
   - docker
 
 after_success:
-  - docker build -t stuff-doer .
+  - docker build -t egorebasko/stuff-doer .
 
 deploy:
   provider: script
