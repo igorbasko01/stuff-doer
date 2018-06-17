@@ -5,4 +5,4 @@ deploy:
   provider: script
   script: echo hello
   on:
-    branch: feature-deploy-script
+    branch: master
