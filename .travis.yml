@@ -3,6 +3,6 @@ language: java
 
 deploy:
   provider: script
-  script: echo hello
+  script: bash deploy.sh
   on:
     branch: master
