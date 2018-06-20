@@ -17,8 +17,11 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function notifyMe() {
+    var audio = new Audio("resources/mp3/Alarm.mp3");
+    audio.play();
+    
   if (!Notification) {
-    alert('Desktop notifications not available in your browser. Try Chromium.'); 
+    alert('Desktop notifications not available in your browser. Try Chromium.');
     return;
   }
 
@@ -30,8 +33,6 @@ function notifyMe() {
       body: "Well Done !",
     });
 
-    var audio = new Audio("resources/mp3/Alarm.mp3");
-    audio.play();
 
     notification.onclick = function () {
         window.location.href = baseURL;
