@@ -89,6 +89,12 @@ class RouteContainer(self: ActorRef,
     }
   }
 
+  val getReqRecordsByDateRange = path("basched" / "getRecordsByDateRange") {
+    parameters('from, 'to) { (from, to) =>
+      getRecordsByDateRange(from.toLong, to.toLong)
+    }
+  }
+
   val getMP3 = pathPrefix("resources" / "mp3") {
     getFromDirectory("src/main/resources/mp3")
   }
@@ -472,5 +478,15 @@ class RouteContainer(self: ActorRef,
       case ReplyDeleteActiveTask(SUCCESS) => complete(StatusCodes.OK)
       case _ => complete(StatusCodes.NotFound)
     }
+  }
+
+  /**
+    * Return all Records that ended at the specified date range.
+    * @param from The start date in millis.
+    * @param to The end date in millis.
+    * @return The Route object of the request.
+    */
+  def getRecordsByDateRange(from: Long, to: Long) : Route = {
+    complete(StatusCodes.NotFound)
   }
 }
