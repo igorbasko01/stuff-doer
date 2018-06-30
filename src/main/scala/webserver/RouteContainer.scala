@@ -91,7 +91,7 @@ class RouteContainer(self: ActorRef,
 
   val getReqRecordsByDateRange = path("basched" / "getRecordsByDateRange") {
     parameters('from, 'to) { (from, to) =>
-      getRecordsByDateRange(from.toLong, to.toLong)
+      getRecordsByDateRange(from, to)
     }
   }
 
@@ -100,7 +100,7 @@ class RouteContainer(self: ActorRef,
   }
 
   val getRoutes = get { getHomeFile ~ getShutdown ~ getQuery ~ getUpdate ~ getAllProjects ~
-    getUnfinishedTasks ~ getReqRemainingPomodoroTime ~ getHtmlFiles ~ getMP3 }
+    getUnfinishedTasks ~ getReqRemainingPomodoroTime ~ getHtmlFiles ~ getReqRecordsByDateRange ~ getMP3 }
 
   val postAddTask = path("basched" / "addTask") {
     parameters('prj, 'name, 'pri) { (prj, name, priority) =>
@@ -486,7 +486,7 @@ class RouteContainer(self: ActorRef,
     * @param to The end date in millis.
     * @return The Route object of the request.
     */
-  def getRecordsByDateRange(from: Long, to: Long) : Route = {
+  def getRecordsByDateRange(from: String, to: String) : Route = {
     complete(StatusCodes.NotFound)
   }
 }
