@@ -12,5 +12,8 @@ trait WebServerJsonReply extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val projsFormat = jsonFormat1(WebServerActor.Projects)
 
   implicit val pomodoroDurationFormat = jsonFormat1(WebServerActor.PomodoroDuration)
+
+  implicit val aggRecordFormat = jsonFormat2(BaschedRequest.AggregatedRecord)
+  implicit val aggRecordsFormat = jsonFormat1(WebServerActor.AggRecords)
 }
 

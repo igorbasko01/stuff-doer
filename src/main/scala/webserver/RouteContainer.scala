@@ -487,6 +487,15 @@ class RouteContainer(self: ActorRef,
     * @return The Route object of the request.
     */
   def getRecordsByDateRange(from: String, to: String) : Route = {
-    complete(StatusCodes.NotFound)
+    implicit val ec: ExecutionContext = dispatcher
+
+    val response = for {
+      aggRecords <- sendRequest(RequestAggRecordsByDateRange(from, to)).mapTo[ReplyAggRecordsByDateRange]
+    } yield aggRecords
+
+    onSuccess(response) {
+      case ReplyAggRecordsByDateRange(SUCCESS, records) => complete(WebServerActor.AggRecords(records))
+      case _ => complete(StatusCodes.NotFound)
+    }
   }
 }
