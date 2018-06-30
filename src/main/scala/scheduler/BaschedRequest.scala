@@ -77,6 +77,11 @@ object BaschedRequest {
   case class RequestUpdateTaskPriority(taskid: Int, priority: Int) extends Message
   case class ReplyUpdateTaskPriority(response: Int)
 
+  case class Record(id: Int, taskId: Int, end: Long, duration_ms: Long)
+  case class AggregatedRecord(taskName: String, duration: Long)
+  case class RequestAggRecordsByDateRange(from: String, to: String) extends Message
+  case class ReplyAggRecordsByDateRange(response: Int, aggRecords: List[AggregatedRecord])
+
   /**
     * Returns a [[Props]] object with instantiated [[BaschedRequest]] class.
     * @param db The [[DatabaseActor]] that the queries will be sent to.
@@ -112,6 +117,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     case req: RequestDeleteActiveTask => requestDeleteActiveTask(req.taskid)
     case req: RequestHistoricalTaskDuration => requestHistoricalTaskDuration(req.taskId)
     case req: RequestUpdateTaskPriority => requestUpdateTaskPriority(req.taskid, req.priority)
+    case req: RequestAggRecordsByDateRange => requestAggregatedRecords(req)
     case RequestActiveTasks => requestActiveTasks()
     case RequestTaskDetails(taskid) => requestTaskDetails(taskid)
     case req: RequestTaskStatusUpdate => requestTaskStatusUpdate(req.taskid, req.newStatus)
@@ -536,6 +542,49 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
       case _ => ReplyUpdateTaskPriority(BaschedRequest.ERROR)
     }
 
+    replyTo ! reply
+  }
+
+  /**
+    * Takes a list of strings and converts it to a single [[Record]] object.
+    * @param rawRecord A list of Strings that describe one Record.
+    * @return A Record object.
+    */
+  def listToRecord(rawRecord: List[String]) : Record = {
+    Record(rawRecord.head.toInt, rawRecord(1).toInt, rawRecord(2).toLong, rawRecord(3).toLong)
+  }
+
+  /**
+    * Takes a list of strings and converts it to a single [[AggregatedRecord]] object.
+    * @param aggRawRecord A list of Strings that describe one [[AggregatedRecord]].
+    * @return An [[AggregatedRecord]] that was constructed from the list.
+    */
+  def listToAggRecord(aggRawRecord: List[String]) : AggregatedRecord = {
+    AggregatedRecord(aggRawRecord.head, aggRawRecord(1).toLong)
+  }
+
+  /**
+    * Queries the database actor to return the duration of all the records in a date range, and aggregates them by
+    * task name.
+    * @param request The request object with the from and to dates.
+    */
+  def requestAggregatedRecords(request: RequestAggRecordsByDateRange) : Unit = {
+    replyTo = sender()
+    handleReply = replyAggregatedRecords
+
+    db ! DatabaseActor.QueryDB(0,
+      s" SELECT t.name, SUM(duration_ms) FROM ${Basched.TABLE_NAME_RECORDS} r " +
+      s" JOIN ${Basched.TABLE_NAME_TASKS} t ON r.tskid=t.id " +
+      s" WHERE end > ${request.from} AND end < ${request.to} " +
+      s" GROUP BY t.name " +
+      s" ORDER BY 2 DESC")
+  }
+
+  def replyAggregatedRecords(r: DatabaseActor.QueryResult) : Unit = {
+    val reply = r match {
+      case QueryResult(_, Some(result), _, 0) => ReplyAggRecordsByDateRange(SUCCESS, result.map(listToAggRecord).toList)
+      case _ => ReplyAggRecordsByDateRange(ERROR, List.empty[AggregatedRecord])
+    }
     replyTo ! reply
   }
 }
