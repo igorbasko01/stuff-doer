@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", function () {
-    console.log(getMidnightInMillis(getCurrentDateAsString()) + " -> " + getMidnightInMillis(getTomorrowDateAsString()));
+    requestPomodorosForToday();
 });
 
 // Returns the representation of current midnight in milliseconds.
@@ -18,6 +18,13 @@ function getTomorrowDateAsString() {
     var nextDay = new Date();
     nextDay.setDate(nextDay.getDate() + 1);
     return nextDay.toJSON().slice(0, 10);
+}
+
+function requestPomodorosForToday() {
+    var todayMidnight = getMidnightInMillis(getCurrentDateAsString());
+    var tomorrowMidnight = getMidnightInMillis(getTomorrowDateAsString());
+    console.log(todayMidnight + " -> " + tomorrowMidnight);
+    requestPomodorosForDateRange(todayMidnight, tomorrowMidnight);
 }
 
 function requestPomodorosForDateRange(startDate_ms, endDate_ms) {
