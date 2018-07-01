@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", function () {
-    requestPomodorosForToday();
+    requestRecordsForToday();
 });
 
 // Returns the representation of current midnight in milliseconds.
@@ -20,12 +20,25 @@ function getTomorrowDateAsString() {
     return nextDay.toJSON().slice(0, 10);
 }
 
-function requestPomodorosForToday() {
+function requestRecordsForToday() {
     var todayMidnight = getMidnightInMillis(getCurrentDateAsString());
     var tomorrowMidnight = getMidnightInMillis(getTomorrowDateAsString());
-    console.log(todayMidnight + " -> " + tomorrowMidnight);
-    requestPomodorosForDateRange(todayMidnight, tomorrowMidnight);
+    requestRecordsForDateRange(todayMidnight, tomorrowMidnight);
 }
 
-function requestPomodorosForDateRange(startDate_ms, endDate_ms) {
+function requestRecordsForDateRange(startDate_ms, endDate_ms) {
+    console.log("Requesting records for date range: "+startDate_ms+" -> "+endDate_ms)
+    makeRequest("GET", baseURL + "basched/getRecordsByDateRange?from="+startDate_ms+"&to="+endDate_ms)
+    .then(function (xhr) {handleReply(xhr);})
+    .catch(logHttpError);
+}
+
+const sumDurations = (accum, record) => ({duration: parseInt(accum.duration) + parseInt(record.duration)});
+
+function handleReply(response) {
+    console.log("Handling records reply now !");
+    var records = JSON.parse(response.responseText).records;
+    var durations = records.reduce(sumDurations);
+    console.log("records: " + records);
+    console.log("durations: " + durations.duration);
 }
