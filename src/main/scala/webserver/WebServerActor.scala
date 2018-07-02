@@ -20,6 +20,7 @@ object WebServerActor {
   final case class Tasks(tasks: List[BaschedRequest.Task])
   final case class Projects(projects: List[BaschedRequest.Project])
   final case class PomodoroDuration(duration: Long)
+  final case class AggRecords(records: List[BaschedRequest.AggregatedRecord])
 
   // A recommended way of creating props for actors with parameters.
   def props(hostname: String, port: Int, databaseActor: ActorRef): Props =
