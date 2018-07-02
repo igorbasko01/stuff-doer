@@ -38,7 +38,22 @@ const sumDurations = (accum, record) => ({duration: parseInt(accum.duration) + p
 function handleReply(response) {
     console.log("Handling records reply now !");
     var records = JSON.parse(response.responseText).records;
+
+    if (records.length == 0) {
+        console.log("No records yet for today.");
+        return;
+    }
+
     var durations = records.reduce(sumDurations);
-    console.log("records: " + records);
-    console.log("durations: " + durations.duration);
+
+    displayNumOfPomodoros(durations.duration);
+
+
+}
+
+function displayNumOfPomodoros(duration) {
+    var pomodorosAmount = duration / 1000 / 60 / 25;
+    $("#pomodoros tr").remove();
+    $("#pomodoros").append("<tr><th>Date</th><th>Pomodoros</th></tr>");
+    $("#pomodoros").append("<tr><td>"+getCurrentDateAsString()+"</td><td>"+pomodorosAmount.toFixed(2)+"</td></tr>");
 }
