@@ -47,8 +47,7 @@ function handleReply(response) {
     var durations = records.reduce(sumDurations);
 
     displayNumOfPomodoros(durations.duration);
-
-
+    displayRecords(records, durations.duration);
 }
 
 function displayNumOfPomodoros(duration) {
@@ -56,4 +55,20 @@ function displayNumOfPomodoros(duration) {
     $("#pomodoros tr").remove();
     $("#pomodoros").append("<tr><th>Date</th><th>Pomodoros</th></tr>");
     $("#pomodoros").append("<tr><td>"+getCurrentDateAsString()+"</td><td>"+pomodorosAmount.toFixed(2)+"</td></tr>");
+}
+
+function displayRecords(records, totalDuration) {
+    $("#breakdown tr").remove();
+    $("#breakdown").append("<tr><th>Task Name</th><th>Duration</th></tr>");
+
+    var tasksRows = records.map(record => {return "<tr><td>"+record.taskName+"</td><td>"+record.duration+"</td></tr>"; });
+
+    $("#breakdown").append(tasksRows.join(""));
+
+    var sumLineTitle = "<tr><td></td><td><b>Total Minutes<b></td></tr>";
+    var durationInMinutes = totalDuration / 1000 / 60;
+    var sumLine = "<tr><td></td><td>"+durationInMinutes.toFixed(2)+"</td></tr>";
+
+    $("#breakdown").append(sumLineTitle);
+    $("#breakdown").append(sumLine);
 }
