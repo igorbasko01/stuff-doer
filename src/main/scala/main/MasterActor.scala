@@ -47,9 +47,9 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
   override def receive: Receive = {
     case Terminated(ref) =>
       watched -= ref
-      log.info(s"Actor: ${ref.path} died.")
+      log.info("Actor: {} died.", ref.path)
       controlledTermination()
-    case someMessage => log.warning(s"Got the following message for some reason: $someMessage")
+    case someMessage => log.warning("Got the following message for some reason: {}", someMessage)
   }
 
   /***
