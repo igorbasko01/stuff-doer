@@ -20,6 +20,7 @@ object MasterActor {
 
 class MasterActor(config: Configuration) extends Actor with ActorLogging {
 
+  // Print the status of the logger.
   val lc = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
   StatusPrinter.print(lc)
 
