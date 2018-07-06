@@ -1,7 +1,10 @@
 package main
 
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props, Terminated}
+import ch.qos.logback.classic.LoggerContext
+import ch.qos.logback.core.util.StatusPrinter
 import database.DatabaseActor
+import org.slf4j.LoggerFactory
 import scheduler.Basched
 import utils.Configuration
 import webserver.WebServerActor
@@ -16,6 +19,9 @@ object MasterActor {
 }
 
 class MasterActor(config: Configuration) extends Actor with ActorLogging {
+
+  val lc = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
+  StatusPrinter.print(lc)
 
   private val watched = ArrayBuffer.empty[ActorRef]
 
