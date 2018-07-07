@@ -59,13 +59,16 @@ function displayNumOfPomodoros(duration) {
 
 function displayRecords(records, totalDuration) {
     $("#breakdown tr").remove();
-    $("#breakdown").append("<tr><th>Task Name</th><th>Duration</th></tr>");
+    $("#breakdown").append("<tr><th>Task Name</th><th>Duration (Minutes)</th></tr>");
 
-    var tasksRows = records.map(record => {return "<tr><td>"+record.taskName+"</td><td>"+record.duration+"</td></tr>"; });
+    var tasksRows = records.map(record => {
+        var duration = parseInt(record.duration) / 1000 / 60;
+        return "<tr><td>"+record.taskName+"</td><td>"+duration.toFixed(2)+"</td></tr>";
+    });
 
     $("#breakdown").append(tasksRows.join(""));
 
-    var sumLineTitle = "<tr><td></td><td><b>Total Minutes<b></td></tr>";
+    var sumLineTitle = "<tr><td></td><td><b>Total<b></td></tr>";
     var durationInMinutes = totalDuration / 1000 / 60;
     var sumLine = "<tr><td></td><td>"+durationInMinutes.toFixed(2)+"</td></tr>";
 
