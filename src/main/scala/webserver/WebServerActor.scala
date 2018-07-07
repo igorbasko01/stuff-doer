@@ -53,7 +53,7 @@ class WebServerActor(hostname: String,
     log.info("Starting...")
     bindingFuture = Http(context.system).bindAndHandle(route, hostname, port)
     log.info("Started !")
-    log.info(s"Listening on $hostname:$port")
+    log.info("Listening on {}:{}", hostname, port)
   }
 
   override def postStop(): Unit = {

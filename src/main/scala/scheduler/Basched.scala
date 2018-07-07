@@ -57,7 +57,7 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
   override def receive: Receive = {
     case DatabaseActor.TableExistsResult(name, isExist) if !isExist => createTable(name)
     case x: DatabaseActor.QueryResult => handleQueryResult(x)
-    case unknown => log.warning(s"Got unhandled message: $unknown")
+    case unknown => log.warning("Got unhandled message: {}", unknown)
   }
 
   def handleQueryResult(result: DatabaseActor.QueryResult): Unit = {
@@ -66,12 +66,12 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
   }
 
   def createTable(name: String): Unit = {
-    log.info(s"Going to create table: $name")
+    log.info("Going to create table: {}", name)
 
     addQueryRequest(db,
       tablesCreationStmts(name), update = true,
       (x: DatabaseActor.QueryResult) => {
-        log.info(s"Table creation result: ${x.message}")
+        log.info("Table creation result: {}", x.message)
       }
     )
   }

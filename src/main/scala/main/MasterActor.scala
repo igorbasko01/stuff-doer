@@ -1,7 +1,10 @@
 package main
 
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props, Terminated}
+import ch.qos.logback.classic.LoggerContext
+import ch.qos.logback.core.util.StatusPrinter
 import database.DatabaseActor
+import org.slf4j.LoggerFactory
 import scheduler.Basched
 import utils.Configuration
 import webserver.WebServerActor
@@ -16,6 +19,10 @@ object MasterActor {
 }
 
 class MasterActor(config: Configuration) extends Actor with ActorLogging {
+
+  // Print the status of the logger.
+  val lc = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
+  StatusPrinter.print(lc)
 
   private val watched = ArrayBuffer.empty[ActorRef]
 
@@ -40,9 +47,9 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
   override def receive: Receive = {
     case Terminated(ref) =>
       watched -= ref
-      log.info(s"Actor: ${ref.path} died.")
+      log.info("Actor: {} died.", ref.path)
       controlledTermination()
-    case someMessage => log.warning(s"Got the following message for some reason: $someMessage")
+    case someMessage => log.warning("Got the following message for some reason: {}", someMessage)
   }
 
   /***

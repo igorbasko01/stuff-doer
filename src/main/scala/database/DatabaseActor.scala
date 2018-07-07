@@ -51,7 +51,7 @@ class DatabaseActor(config: Configuration, clientsProps: List[PropsWithName]) ex
     case DatabaseActor.QueryDB(reqId, query, update) => sender ! queryDataBase(reqId, query, update = update)
     case DatabaseActor.IsTableExists(name) => sender ! DatabaseActor.TableExistsResult(name, checkIfTableExists(name))
     case PoisonPill => controlledTermination()
-    case somemessage => log.error(s"Got some unknown message: $somemessage")
+    case somemessage => log.error("Got some unknown message: {}", somemessage)
   }
 
   def controlledTermination(): Unit = {
@@ -68,7 +68,7 @@ class DatabaseActor(config: Configuration, clientsProps: List[PropsWithName]) ex
     val conn: Connection = DriverManager.getConnection("jdbc:h2:~/test", "sa", "")
 
     //"select * from INFORMATION_SCHEMA.TABLES"
-    log.info(s"Got the following query: $query, from: $sender")
+    log.info(s"Got the following query: {}, from: {}", query, sender)
 
     val resultTry = update match {
       case false => Try(conn.createStatement().executeQuery(query))
