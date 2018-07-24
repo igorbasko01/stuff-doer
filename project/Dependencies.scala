@@ -1,7 +1,7 @@
 import sbt._
 
 object Dependencies {
-  lazy val logbackClassic = "ch.qos.logback" % "logback-classic" % "2.22"
+  lazy val logbackClassic = "ch.qos.logback" % "logback-classic" % "1.2.3"
   lazy val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % "2.5.2"
   lazy val akkaActor = "com.typesafe.akka" %% "akka-actor" % "2.5.2"
   lazy val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.0.5"
