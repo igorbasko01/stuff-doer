@@ -2,6 +2,7 @@ package webserver
 
 import akka.actor.ActorRef
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
+import akka.http.scaladsl.server.directives.Credentials
 import akka.http.scaladsl.server.{Directives, Route}
 import akka.pattern.ask
 import akka.util.Timeout
@@ -496,6 +497,23 @@ class RouteContainer(self: ActorRef,
     onSuccess(response) {
       case ReplyAggRecordsByDateRange(SUCCESS, records) => complete(WebServerActor.AggRecords(records))
       case _ => complete(StatusCodes.NotFound)
+    }
+  }
+
+  /**
+    * Authenticate the credentials with an async manner.
+    * @param credentials The credentials of of the request.
+    * @return A future that will contain the id of the user.
+    */
+  def myUserPassAuthenticator(credentials: Credentials) : Future[Option[String]] = {
+    implicit val ec: ExecutionContext = dispatcher
+    credentials match {
+      case p @ Credentials.Provided(id) =>
+        Future {
+          if (p.verify("bassword")) Some(id)
+          else None
+        }
+      case _ => Future.successful(None)
     }
   }
 }
