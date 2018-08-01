@@ -229,7 +229,9 @@ class RouteContainer(self: ActorRef,
     postUpdateTaskWindowIfNeeded ~ postFinishTask ~ postToggleHold ~ postStartTask ~ postPingTask ~ postStopTask ~
   postUpdatePriority }
 
-  val fullRoute = getRoutes ~ postRoutes
+  val fullRoute = authenticateBasic("secure site", myUserPassAuthenticator) {
+    userName => getRoutes ~ postRoutes
+  }
 
   def handleUnfinishedTasks(tasks: List[BaschedRequest.Task]) : Route = {
     if (tasks.exists(_.status == Basched.STATUS("READY")))
@@ -505,15 +507,10 @@ class RouteContainer(self: ActorRef,
     * @param credentials The credentials of of the request.
     * @return A future that will contain the id of the user.
     */
-  def myUserPassAuthenticator(credentials: Credentials) : Future[Option[String]] = {
-    implicit val ec: ExecutionContext = dispatcher
+  def myUserPassAuthenticator(credentials: Credentials) : Option[String] = {
     credentials match {
-      case p @ Credentials.Provided(id) =>
-        Future {
-          if (p.verify("bassword")) Some(id)
-          else None
-        }
-      case _ => Future.successful(None)
+      case p @ Credentials.Provided(id) if (p.verify("bassword")) => Some(id)
+      case _ => None
     }
   }
 }
