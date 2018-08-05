@@ -5,6 +5,6 @@ COPY ./src/main/resources/html/* /usr/local/stuff-doer/src/main/resources/html/
 COPY ./src/main/resources/mp3/* /usr/local/stuff-doer/src/main/resources/mp3/
 WORKDIR /usr/local/stuff-doer
 EXPOSE 9080
-CMD ["java", "-Dconfig.file=/usr/local/stuff-doer/application.conf", \
+CMD ["java", "-Dconfig.file=/root/stuff-doer/config/application.conf", \
 "-Dlogback.configurationFile=/usr/local/stuff-doer/logback.xml", \
 "-cp" ,"./stuff-doer-1.0-SNAPSHOT-shaded.jar", "main.Main"]
