@@ -9,6 +9,7 @@ class Configuration extends Serializable {
 
   var hostname: String = _
   var portNum: Int = _
+  var password: String = _
 
   /**
     * Loads the configuration into the Configuration object.
@@ -20,9 +21,25 @@ class Configuration extends Serializable {
     try {
       hostname = config.getString("webserver.hostname")
       portNum = config.getInt("webserver.port")
-      true
+      password = config.getString("webserver.pass")
+
+      validateConfig()
+
     } catch {
       case e: RuntimeException => println(e.getMessage); false
     }
+  }
+
+  /**
+    * This function validates the config params.
+    * @return true if all validation were ok.
+    */
+  def validateConfig() : Boolean = {
+    if (password.trim().isEmpty()) {
+      println("webserver.password cannot be empty")
+      false
+    }
+
+    true
   }
 }
