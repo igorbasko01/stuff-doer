@@ -29,7 +29,7 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
   private val dataBase = context.actorOf(DatabaseActor.props(config, List(PropsWithName(Basched.props(config),"Basched"))),
     "database.DatabaseActor")
 
-  private val webserver = context.actorOf(WebServerActor.props(config.hostname, config.portNum, dataBase),"Webserver")
+  private val webserver = context.actorOf(WebServerActor.props(config.hostname, config.portNum, config.password, dataBase),"Webserver")
   watchActor(dataBase)
   watchActor(webserver)
 

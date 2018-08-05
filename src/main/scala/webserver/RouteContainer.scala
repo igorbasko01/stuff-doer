@@ -19,9 +19,7 @@ object RouteContainer {
   case object Shutdown
 }
 
-class RouteContainer(self: ActorRef,
-                     databaseActor: ActorRef,
-                     sendRequest: BaschedRequest.Message => Future[Any],
+class RouteContainer(self: ActorRef, databaseActor: ActorRef, password: String, sendRequest: BaschedRequest.Message => Future[Any],
                      dispatcher: ExecutionContext) extends Directives with WebServerJsonReply {
 
   implicit val timeout: Timeout = Timeout(10.seconds)
@@ -509,7 +507,7 @@ class RouteContainer(self: ActorRef,
     */
   def myUserPassAuthenticator(credentials: Credentials) : Option[String] = {
     credentials match {
-      case p @ Credentials.Provided(id) if (p.verify("bassword")) => Some(id)
+      case p @ Credentials.Provided(id) if (p.verify(password)) => Some(id)
       case _ => None
     }
   }
