@@ -28,7 +28,7 @@ class WebServerActorTest extends WordSpec with Matchers with BeforeAndAfterAll w
     }
   }
 
-  class WebserverActorTest1(host: String, port: Int, db: ActorRef) extends WebServerActor(host, port, db) {
+  class WebserverActorTest1(host: String, port: Int, password: String, db: ActorRef) extends WebServerActor(host, port, password, db) {
 
     override def preStart(): Unit = {
       log.info("Starting...")
@@ -55,17 +55,18 @@ class WebServerActorTest extends WordSpec with Matchers with BeforeAndAfterAll w
       def propsBasched(config: Configuration) = Props(new BaschedActorTest1(config))
       def propsDatabase(config: Configuration) = Props(new DatabaseActorTest1(config,
         List(PropsWithName(propsBasched(config),"BaschedTest1"))))
-      def propsWebserver(host: String, port: Int, db: ActorRef) = Props(new WebserverActorTest1(host, port, db))
+      def propsWebserver(host: String, port: Int, password: String, db: ActorRef) = Props(new WebserverActorTest1(host, port, password, db))
 
       implicit val timeout: Timeout = Timeout(10.seconds)
       val config = new Configuration
       val databaseActor = system.actorOf(propsDatabase(config), "DatabaseTest1")
-      val webServerActor = system.actorOf(propsWebserver("llll",14, databaseActor), "WebserverTest1")
+      val password = "p4ssword"
+      val webServerActor = system.actorOf(propsWebserver("llll", 14, password, databaseActor), "WebserverTest1")
       def sendRequest(request: BaschedRequest.Message) : Future[Any] = {
         val requestActor = system.actorOf(BaschedRequest.props(databaseActor))
         requestActor ? request
       }
-      val route = new RouteContainer(webServerActor, databaseActor, sendRequest, system.dispatcher).getAllProjects
+      val route = new RouteContainer(webServerActor, databaseActor, password, sendRequest, system.dispatcher).getAllProjects
 
       Get("/basched/allprojects") ~> route ~> check {
         responseAs[String] shouldEqual "{\"projects\":[{\"id\":1,\"name\":\"hello\"}]}"

@@ -2,6 +2,7 @@ package webserver
 
 import akka.actor.ActorRef
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
+import akka.http.scaladsl.server.directives.Credentials
 import akka.http.scaladsl.server.{Directives, Route}
 import akka.pattern.ask
 import akka.util.Timeout
@@ -18,9 +19,7 @@ object RouteContainer {
   case object Shutdown
 }
 
-class RouteContainer(self: ActorRef,
-                     databaseActor: ActorRef,
-                     sendRequest: BaschedRequest.Message => Future[Any],
+class RouteContainer(self: ActorRef, databaseActor: ActorRef, password: String, sendRequest: BaschedRequest.Message => Future[Any],
                      dispatcher: ExecutionContext) extends Directives with WebServerJsonReply {
 
   implicit val timeout: Timeout = Timeout(10.seconds)
@@ -228,7 +227,9 @@ class RouteContainer(self: ActorRef,
     postUpdateTaskWindowIfNeeded ~ postFinishTask ~ postToggleHold ~ postStartTask ~ postPingTask ~ postStopTask ~
   postUpdatePriority }
 
-  val fullRoute = getRoutes ~ postRoutes
+  val fullRoute = authenticateBasic("secure site", myUserPassAuthenticator) {
+    userName => getRoutes ~ postRoutes
+  }
 
   def handleUnfinishedTasks(tasks: List[BaschedRequest.Task]) : Route = {
     if (tasks.exists(_.status == Basched.STATUS("READY")))
@@ -496,6 +497,18 @@ class RouteContainer(self: ActorRef,
     onSuccess(response) {
       case ReplyAggRecordsByDateRange(SUCCESS, records) => complete(WebServerActor.AggRecords(records))
       case _ => complete(StatusCodes.NotFound)
+    }
+  }
+
+  /**
+    * Authenticate the credentials with an async manner.
+    * @param credentials The credentials of of the request.
+    * @return A future that will contain the id of the user.
+    */
+  def myUserPassAuthenticator(credentials: Credentials) : Option[String] = {
+    credentials match {
+      case p @ Credentials.Provided(id) if (p.verify(password)) => Some(id)
+      case _ => None
     }
   }
 }

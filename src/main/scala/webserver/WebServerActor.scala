@@ -23,12 +23,11 @@ object WebServerActor {
   final case class AggRecords(records: List[BaschedRequest.AggregatedRecord])
 
   // A recommended way of creating props for actors with parameters.
-  def props(hostname: String, port: Int, databaseActor: ActorRef): Props =
-    Props(new WebServerActor(hostname,port,databaseActor))
+  def props(hostname: String, port: Int, password: String,  databaseActor: ActorRef): Props =
+    Props(new WebServerActor(hostname, port, password, databaseActor))
 }
 
-class WebServerActor(hostname: String,
-                     port: Int,
+class WebServerActor(hostname: String, port: Int, password: String,
                      databaseActor: ActorRef) extends Actor with ActorLogging {
 
   implicit val materializer = ActorMaterializer()
@@ -37,7 +36,7 @@ class WebServerActor(hostname: String,
 
   var bindingFuture: Future[ServerBinding] = _
 
-  val route = new RouteContainer(self, databaseActor, sendRequest, context.dispatcher).fullRoute
+  val route = new RouteContainer(self, databaseActor, password, sendRequest, context.dispatcher).fullRoute
 
   /**
     * Creates a Request Actor and sends the request.
