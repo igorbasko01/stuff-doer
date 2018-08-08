@@ -167,7 +167,8 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     replyTo = sender()
     handleReply = replyAddRecord
     db ! DatabaseActor.QueryDB(0, s"INSERT INTO ${Basched.TABLE_NAME_RECORDS} (TSKID, END, DURATION_MS) " +
-      s"VALUES (${newRecord.taskId},${newRecord.endTimestamp},${newRecord.duration})", update = true)
+      s"VALUES (${newRecord.taskId},${newRecord.endTimestamp}," +
+      s"${math.min(newRecord.duration, Basched.POMODORO_MAX_DURATION_MS)})", update = true)
   }
 
   def replyAddRecord(r: DatabaseActor.QueryResult) : Unit = {
