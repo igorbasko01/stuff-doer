@@ -10,11 +10,12 @@ Just clone/fork and build using Maven: `mvn package`.
 
 It will create a JAR that contains all the needed parts: DB, Backend (Akka), Frontend (Web UI). 
 ## Run (Using docker)
-Build a docker image using the following command: `docker build -t stuff-doer .`
+Build a docker image using the following command (Run it from the root of the repo): `docker build -t stuff-doer .`
 
 To run the docker image, just use the following command: `docker run -p 80:9080 stuff-doer`
 
 If you want to store the tasks between container executions, you need to create a persistent volume, and use it when starting a container. Follow these instructions:
+
 Create a docker volume to use with the image so it will store all the tasks: `docker volume create test`
 
 Run the docker image, with the following command: `docker run -p 80:9080 --mount src=test,target=/root stuff-doer`
