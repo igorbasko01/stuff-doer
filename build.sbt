@@ -22,3 +22,6 @@ lazy val root = (project in file(".")).
     libraryDependencies += scalaTest % Test,
     libraryDependencies += akkaTestkit % Test
   )
+
+// assembly configuration
+assemblyJarName in assembly := "stuff-doer.jar"
