@@ -1,4 +1,4 @@
-package utils
+package core.utils
 
 import com.typesafe.config.Config
 
@@ -19,9 +19,9 @@ class Configuration extends Serializable {
     */
   def loadConfig(config: Config): Boolean = {
     try {
-      hostname = config.getString("webserver.hostname")
-      portNum = config.getInt("webserver.port")
-      password = config.getString("webserver.pass")
+      hostname = config.getString("core.webserver.hostname")
+      portNum = config.getInt("core.webserver.port")
+      password = config.getString("core.webserver.pass")
 
       validateConfig()
 
@@ -35,8 +35,8 @@ class Configuration extends Serializable {
     * @return true if all validation were ok.
     */
   def validateConfig() : Boolean = {
-    if (password.trim().isEmpty()) {
-      println("webserver.password cannot be empty")
+    if (password.trim().isEmpty) {
+      println("core.webserver.password cannot be empty")
       false
     }
 
