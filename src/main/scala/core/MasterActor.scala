@@ -1,35 +1,30 @@
-package main
+package core
 
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props, Terminated}
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.core.util.StatusPrinter
-import database.DatabaseActor
 import org.slf4j.LoggerFactory
-import scheduler.Basched
 import utils.Configuration
-import webserver.WebServerActor
 
 import scala.collection.mutable.ArrayBuffer
 
 /**
   * Created by igor on 10/05/17.
   */
-object MasterActor {
-  def props(config: Configuration): Props = Props(new MasterActor(config))
-}
 
 class MasterActor(config: Configuration) extends Actor with ActorLogging {
 
   // Print the status of the logger.
-  val lc = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
+  val lc: LoggerContext = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
   StatusPrinter.print(lc)
 
   private val watched = ArrayBuffer.empty[ActorRef]
 
-  private val dataBase = context.actorOf(DatabaseActor.props(config, List(PropsWithName(Basched.props(config),"Basched"))),
-    "database.DatabaseActor")
+  private val dataBase = context.actorOf(props(config, List(PropsWithName(props(config),"Basched"))),
+    "core.database.DatabaseActor")
 
-  private val webserver = context.actorOf(WebServerActor.props(config.hostname, config.portNum, config.password, dataBase),"Webserver")
+  private val webserver = context.actorOf(props(config.hostname, config.portNum, config.password, dataBase),
+    "core.webserver.WebServerActor")
   watchActor(dataBase)
   watchActor(webserver)
 
@@ -62,7 +57,7 @@ class MasterActor(config: Configuration) extends Actor with ActorLogging {
     * Terminate the actor safely if, no more actors to watch, or the webServer actor is stopped.
     */
   def controlledTermination(): Unit = {
-    // If webserver or database actor is not alive stop all the other actors and stop the application.
+    // If core.webserver or core.database actor is not alive stop all the other actors and stop the application.
     if (!watched.contains(dataBase) || !watched.contains(webserver)) watched.foreach(_ ! PoisonPill)
     if (watched.isEmpty) context.stop(self)
   }

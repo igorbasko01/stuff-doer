@@ -1,18 +1,18 @@
-package webserver
+package core.webserver
 
 import akka.actor.{ActorRef, Props}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.testkit.TestKit
-import database.DatabaseActor
+import core.database.DatabaseActor
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
-import scheduler.{Basched, BaschedRequest}
-import utils.Configuration
+import core.scheduler.Basched
+import core.utils.{Configuration, Message}
+import core._
 
 import scala.concurrent.duration._
 import scala.concurrent.Future
 import akka.pattern.ask
 import akka.util.Timeout
-import main.PropsWithName
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -24,7 +24,7 @@ class WebServerActorTest extends WordSpec with Matchers with BeforeAndAfterAll w
 
   class DatabaseActorTest1(config: Configuration, clientProps: List[PropsWithName]) extends DatabaseActor(config, clientProps) {
     override def receive: Receive = {
-      case _ => sender ! DatabaseActor.QueryResult(0,Some(ArrayBuffer(List("1","hello"))),"",0)
+      case _ => sender ! Message.QueryResult(0,Some(ArrayBuffer(List("1","hello"))),"",0)
     }
   }
 
@@ -62,8 +62,8 @@ class WebServerActorTest extends WordSpec with Matchers with BeforeAndAfterAll w
       val databaseActor = system.actorOf(propsDatabase(config), "DatabaseTest1")
       val password = "p4ssword"
       val webServerActor = system.actorOf(propsWebserver("llll", 14, password, databaseActor), "WebserverTest1")
-      def sendRequest(request: BaschedRequest.Message) : Future[Any] = {
-        val requestActor = system.actorOf(BaschedRequest.props(databaseActor))
+      def sendRequest(request: Message) : Future[Any] = {
+        val requestActor = system.actorOf(props(databaseActor))
         requestActor ? request
       }
       val route = new RouteContainer(webServerActor, databaseActor, password, sendRequest, system.dispatcher).getAllProjects

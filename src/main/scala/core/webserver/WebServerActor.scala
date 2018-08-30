@@ -1,12 +1,14 @@
-package webserver
+package core.webserver
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
+import akka.http.scaladsl.server.Route
 import akka.pattern.ask
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import scheduler.BaschedRequest
+import core.utils.Message
+import core._
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -14,37 +16,25 @@ import scala.concurrent.duration._
 /**
   * Created by igor on 14/05/17.
   */
-object WebServerActor {
-  case object Shutdown
-
-  final case class Tasks(tasks: List[BaschedRequest.Task])
-  final case class Projects(projects: List[BaschedRequest.Project])
-  final case class PomodoroDuration(duration: Long)
-  final case class AggRecords(records: List[BaschedRequest.AggregatedRecord])
-
-  // A recommended way of creating props for actors with parameters.
-  def props(hostname: String, port: Int, password: String,  databaseActor: ActorRef): Props =
-    Props(new WebServerActor(hostname, port, password, databaseActor))
-}
 
 class WebServerActor(hostname: String, port: Int, password: String,
                      databaseActor: ActorRef) extends Actor with ActorLogging {
 
-  implicit val materializer = ActorMaterializer()
+  implicit val materializer: ActorMaterializer = ActorMaterializer()
 
   implicit val timeout: Timeout = Timeout(10.seconds)
 
   var bindingFuture: Future[ServerBinding] = _
 
-  val route = new RouteContainer(self, databaseActor, password, sendRequest, context.dispatcher).fullRoute
+  val route: Route = new RouteContainer(self, databaseActor, password, sendRequest, context.dispatcher).fullRoute
 
   /**
     * Creates a Request Actor and sends the request.
     * @param request The message to handle.
     * @return A future of the reply.
     */
-  def sendRequest(request: BaschedRequest.Message) : Future[Any] = {
-    val requestActor = context.actorOf(BaschedRequest.props(databaseActor))
+  def sendRequest(request: Message) : Future[Any] = {
+    val requestActor = context.actorOf(props(databaseActor))
     requestActor ? request
   }
 
@@ -61,7 +51,7 @@ class WebServerActor(hostname: String, port: Int, password: String,
   }
 
   override def receive: Receive = {
-    case WebServerActor.Shutdown => context.stop(self)
+    case Message.Shutdown => context.stop(self)
   }
 }
 

@@ -1,13 +1,13 @@
-package database
+package core.database
 
 import java.sql.{Connection, DriverManager, ResultSet}
 
-import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill}
 import akka.stream._
-import database.DatabaseActor.QueryResult
-import main.PropsWithName
 import org.h2.jdbc.JdbcSQLException
-import utils.Configuration
+import core.utils.Configuration
+import core.utils.Message
+import core._
 
 import scala.collection.mutable.ArrayBuffer
 import scala.util.{Failure, Success, Try}
@@ -15,22 +15,10 @@ import scala.util.{Failure, Success, Try}
 /**
   * Created by igor on 25/05/17.
   */
-object DatabaseActor {
-  case object Shutdown
-
-  case class QueryDB(reqId: Int, query: String, update: Boolean = false)
-  case class QueryResult(reqId: Int, result: Option[ArrayBuffer[List[String]]], message: String, errorCode: Int)
-
-  case class IsTableExists(tableName: String)
-  case class TableExistsResult(tableName: String, isExist: Boolean)
-
-  def props(config: Configuration, clientProps: List[PropsWithName]): Props =
-    Props(new DatabaseActor(config, clientProps))
-}
 
 class DatabaseActor(config: Configuration, clientsProps: List[PropsWithName]) extends Actor with ActorLogging {
 
-  val materializer = ActorMaterializer()(context)
+  val materializer: ActorMaterializer = ActorMaterializer()(context)
 
   var clients: List[ActorRef] = List.empty
 
@@ -47,9 +35,9 @@ class DatabaseActor(config: Configuration, clientsProps: List[PropsWithName]) ex
   }
 
   override def receive: Receive = {
-    case DatabaseActor.Shutdown => controlledTermination()
-    case DatabaseActor.QueryDB(reqId, query, update) => sender ! queryDataBase(reqId, query, update = update)
-    case DatabaseActor.IsTableExists(name) => sender ! DatabaseActor.TableExistsResult(name, checkIfTableExists(name))
+    case Message.Shutdown => controlledTermination()
+    case Message.QueryDB(reqId, query, update) => sender ! queryDataBase(reqId, query, update = update)
+    case Message.IsTableExists(name) => sender ! Message.TableExistsResult(name, checkIfTableExists(name))
     case PoisonPill => controlledTermination()
     case somemessage => log.error("Got some unknown message: {}", somemessage)
   }
@@ -59,20 +47,21 @@ class DatabaseActor(config: Configuration, clientsProps: List[PropsWithName]) ex
   }
 
   /**
-    * This function executes a query against the database and returns the results as a one long string.
+    * This function executes a query against the core.database and returns the results as a one long string.
     * @param query The query to execute.
     * @return The result of the query as an array of fields and a relevant message.
     */
-  def queryDataBase(reqId: Int, query: String, returnHeader: Boolean = false, update: Boolean = false) : QueryResult = {
+  def queryDataBase(reqId: Int, query: String, returnHeader: Boolean = false, update: Boolean = false) : Message.QueryResult = {
     Class.forName("org.h2.Driver")
     val conn: Connection = DriverManager.getConnection("jdbc:h2:~/test", "sa", "")
 
     //"select * from INFORMATION_SCHEMA.TABLES"
     log.info(s"Got the following query: {}, from: {}", query, sender)
 
-    val resultTry = update match {
-      case false => Try(conn.createStatement().executeQuery(query))
-      case true => Try(conn.createStatement().executeUpdate(query))
+    val resultTry = if (update) {
+      Try(conn.createStatement().executeUpdate(query))
+    } else {
+      Try(conn.createStatement().executeQuery(query))
     }
 
     val resultArray = ArrayBuffer.empty[List[String]]
@@ -97,7 +86,7 @@ class DatabaseActor(config: Configuration, clientsProps: List[PropsWithName]) ex
 
     conn.close()
 
-    QueryResult(reqId, resultToReturn._1,resultToReturn._2,resultToReturn._3)
+    Message.QueryResult(reqId, resultToReturn._1,resultToReturn._2,resultToReturn._3)
   }
 
   /**
@@ -111,7 +100,7 @@ class DatabaseActor(config: Configuration, clientsProps: List[PropsWithName]) ex
     val result = queryDataBase(0, query)
 
     result match {
-      case QueryResult(_, Some(rows), msg, _) => true
+      case Message.QueryResult(_, Some(_), _, _) => true
       case _ => false
     }
   }
