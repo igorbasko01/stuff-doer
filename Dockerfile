@@ -1,6 +1,9 @@
 FROM openjdk:8
 ARG CMD_CONF_DEST_PATH=/usr/local/stuff-doer/application.conf
+# LOG_PATH is used inside logback.xml
+ARG LOG_PATH=/usr/local/stuff-doer/ 
 ENV CMD_CONF_DEST_PATH ${CMD_CONF_DEST_PATH}
+ENV LOG_PATH ${LOG_PATH}
 COPY ./target/scala-2.11/stuff-doer.jar /usr/local/stuff-doer/stuff-doer.jar
 COPY ./src/main/resources/application.conf /usr/local/stuff-doer/application.conf
 COPY ./src/main/resources/logback.xml /usr/local/stuff-doer/logback.xml
