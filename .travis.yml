@@ -4,13 +4,13 @@ scala:
   - 2.11.8
 
 script:
-- sbt assembly
+  - sbt assembly
 
 services:
   - docker
 
 after_success:
-  - docker build -t egorebasko/stuff-doer .
+  - docker build --build-arg CMD_CONF_DEST_PATH=/root/stuff-doer/config/application.conf -t egorebasko/stuff-doer .
 
 deploy:
   provider: script
