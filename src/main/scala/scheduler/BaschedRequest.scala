@@ -5,6 +5,7 @@ import akka.http.javadsl.model.ws.Message
 import database.DatabaseActor
 import database.DatabaseActor.QueryResult
 import org.joda.time.format.DateTimeFormat
+import org.joda.time.DateTime
 import webserver.WebServerActor
 import scheduler.BaschedRequest._
 
@@ -44,6 +45,7 @@ object BaschedRequest {
   case class ReplyRemainingTimeInPomodoro(duration: Long)
 
   case class RequestHistoricalTaskDuration(taskId: Int) extends Message
+  case object RequestTodaysHistoricalTaskDuration extends Message
   case class ReplyHistoricalTaskDuration(duration: Long)
 
   case class RequestUpdatePmdrCountInTask(taskId: Int, pmdrsToAdd: Int) extends Message
@@ -116,6 +118,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     case req: RequestActiveTaskDetails => requestActiveTaskDetails(req.taskid)
     case req: RequestDeleteActiveTask => requestDeleteActiveTask(req.taskid)
     case req: RequestHistoricalTaskDuration => requestHistoricalTaskDuration(req.taskId)
+    case RequestTodaysHistoricalTaskDuration => requestTodaysHistoricalTaskDuration
     case req: RequestUpdateTaskPriority => requestUpdateTaskPriority(req.taskid, req.priority)
     case req: RequestAggRecordsByDateRange => requestAggregatedRecords(req)
     case RequestActiveTasks => requestActiveTasks()
@@ -324,6 +327,21 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     }
 
     replyTo ! ReplyHistoricalTaskDuration(totalDuration)
+  }
+
+
+  /**
+    * Reply the total duration of all the records that ended today.
+    * Using this method I should be able to calculate how much pomodoros
+    * were finished today.
+    */
+  def requestTodaysHistoricalTaskDuration : Unit = {
+    replyTo = sender()
+    handleReply = replyHistoricalTaskDuration
+
+    val startOfDay_ms = new DateTime().withTimeAtStartOfDay().getMillis
+
+    db ! DatabaseActor.QueryDB(0, s"SELECT SUM(DURATION_MS) FROM ${Basched.TABLE_NAME_RECORDS} WHERE END > $startOfDay_ms")
   }
 
   /**
