@@ -84,7 +84,7 @@ class RouteContainer(self: ActorRef, databaseActor: ActorRef, password: String, 
 
   val getReqRemainingPomodoroTime = path("basched" / "getRemainingPomodoroTime") {
     parameters('taskid, 'priority) { (taskid, priority) =>
-      getRemainingPomodoroTime(taskid.toInt, priority.toInt)
+      getRemainingPomodoroTime(taskid.toInt)
     }
   }
 
@@ -262,7 +262,7 @@ class RouteContainer(self: ActorRef, databaseActor: ActorRef, password: String, 
     * @param priority [[Task.priority]]
     * @return Return the duration that left in the pomodoro as a [[Route]]
     */
-  def getRemainingPomodoroTime(taskId: Int, priority: Int) : Route = {
+  def getRemainingPomodoroTime(taskId: Int) : Route = {
     implicit val ec: ExecutionContext = dispatcher
 
     val resp = for {
