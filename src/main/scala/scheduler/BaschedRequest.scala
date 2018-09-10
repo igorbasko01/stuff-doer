@@ -115,7 +115,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     case req: RequestStartTask => requestStartTask(req)
     case req: RequestRemainingTimeInPomodoro => queryRemainingTimeInPomodoro(req.taskId,req.priority)
     case req: RequestUpdateLastPing => requestUpdateLastPing(req)
-    case req: RequestActiveTaskDetails => requestActiveTaskDetails(req.taskid)
+    case req: RequestActiveTaskDetails => requestActiveTaskDetails(Some(req.taskid))
     case req: RequestDeleteActiveTask => requestDeleteActiveTask(req.taskid)
     case req: RequestHistoricalTaskDuration => requestHistoricalTaskDuration(req.taskId)
     case RequestTodaysHistoricalTaskDuration => requestTodaysHistoricalTaskDuration
@@ -483,14 +483,23 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
 
   /**
     * Queries a specific task from the [[Basched.TABLE_NAME_ACTIVE_TASK]] table.
+    * If a [[Task.id]] is passed, than query it specifically.
+    * Otherwise, just query whatever there is in the table.
     * @param taskId [[Task.id]] to query.
     */
-  def requestActiveTaskDetails(taskId: Int) : Unit = {
+  def requestActiveTaskDetails(taskId: Option[Int]) : Unit = {
     replyTo = sender()
     handleReply = replyActiveTaskDetails
 
-    db ! DatabaseActor.QueryDB(0, s"SELECT TSKID, START, LAST_PING, INITIAL_DURATION " +
-      s"FROM ${Basched.TABLE_NAME_ACTIVE_TASK} WHERE TSKID = $taskId")
+    val sqlStmtHeader = s"SELECT TSKID, START, LAST_PING, INITIAL_DURATION " +
+    s"FROM ${Basched.TABLE_NAME_ACTIVE_TASK} "
+
+    val sqlStmt = taskId match {
+      case Some(id) => s"$sqlStmtHeader WHERE TSKID = $id"
+      case _ => sqlStmtHeader
+    }
+
+    db ! DatabaseActor.QueryDB(0, sqlStmt)
   }
 
   /**
