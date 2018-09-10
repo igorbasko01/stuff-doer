@@ -259,7 +259,6 @@ class RouteContainer(self: ActorRef, databaseActor: ActorRef, password: String, 
   /**
     * Get the remaining time in a pomodoro of a [[Task]]
     * @param taskId [[Task.id]]
-    * @param priority [[Task.priority]]
     * @return Return the duration that left in the pomodoro as a [[Route]]
     */
   def getRemainingPomodoroTime(taskId: Int) : Route = {
