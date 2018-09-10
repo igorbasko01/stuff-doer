@@ -265,7 +265,7 @@ class RouteContainer(self: ActorRef, databaseActor: ActorRef, password: String, 
     implicit val ec: ExecutionContext = dispatcher
 
     val resp = for {
-      activeTask <- sendRequest(RequestActiveTaskDetails(taskId)).mapTo[ReplyActiveTaskDetails]
+      activeTask <- sendRequest(RequestActiveTaskDetails(Some(taskId))).mapTo[ReplyActiveTaskDetails]
       histDuration <- sendRequest(RequestHistoricalTaskDuration(taskId)).mapTo[ReplyHistoricalTaskDuration]
     } yield (activeTask, histDuration)
 
@@ -386,7 +386,7 @@ class RouteContainer(self: ActorRef, databaseActor: ActorRef, password: String, 
     * @return Future.
     */
   def getActiveTaskDetails(taskid: Int) : Future[ReplyActiveTaskDetails] = {
-    sendRequest(RequestActiveTaskDetails(taskid)).mapTo[ReplyActiveTaskDetails]
+    sendRequest(RequestActiveTaskDetails(Some(taskid))).mapTo[ReplyActiveTaskDetails]
   }
 
   /**

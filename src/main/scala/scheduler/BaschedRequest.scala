@@ -66,7 +66,7 @@ object BaschedRequest {
   case class RequestUpdateLastPing(taskid: Int) extends Message
   case class ReplyUpdateLastPing(response: Int)
 
-  case class RequestActiveTaskDetails(taskid: Int) extends Message
+  case class RequestActiveTaskDetails(taskid: Option[Int]) extends Message
   case class ActiveTask(taskid: Int, startTimestamp: String, endTimestamp: String, initDuration: Long)
   case class ReplyActiveTaskDetails(status: Int, activeTask: ActiveTask)
 
@@ -115,7 +115,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     case req: RequestStartTask => requestStartTask(req)
     case req: RequestRemainingTimeInPomodoro => queryRemainingTimeInPomodoro(req.taskId,req.priority)
     case req: RequestUpdateLastPing => requestUpdateLastPing(req)
-    case req: RequestActiveTaskDetails => requestActiveTaskDetails(Some(req.taskid))
+    case req: RequestActiveTaskDetails => requestActiveTaskDetails(req.taskid)
     case req: RequestDeleteActiveTask => requestDeleteActiveTask(req.taskid)
     case req: RequestHistoricalTaskDuration => requestHistoricalTaskDuration(req.taskId)
     case RequestTodaysHistoricalTaskDuration => requestTodaysHistoricalTaskDuration
