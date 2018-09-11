@@ -259,7 +259,7 @@ class RouteContainer(self: ActorRef, databaseActor: ActorRef, password: String, 
   /**
     * Get the remaining time in a pomodoro of a [[Task]]
     * @param taskId [[Task.id]]
-    * @return Return the duration that left in the pomodoro as a [[Route]]
+    * @return Return the remaining time in a pomodoro of a specifc task.
     */
   def getRemainingPomodoroTime(taskId: Int) : Route = {
     implicit val ec: ExecutionContext = dispatcher
@@ -269,6 +269,30 @@ class RouteContainer(self: ActorRef, databaseActor: ActorRef, password: String, 
       histDuration <- sendRequest(RequestHistoricalTaskDuration(taskId)).mapTo[ReplyHistoricalTaskDuration]
     } yield (activeTask, histDuration)
 
+    handleRemainingPomodoroTime(resp)
+  }
+
+  /**
+    * Get the remaining time in a global pomodoro of the day.
+    * @return Return the remaining time of the global pomodoro.
+    */
+  def getGlobalRemainingPomodoroTime : Route = {
+    implicit val ec: ExecutionContext = dispatcher
+
+    val resp = for {
+      activeTask <- sendRequest(RequestActiveTaskDetails(None)).mapTo[ReplyActiveTaskDetails]
+      histDuration <- sendRequest(RequestTodaysHistoricalTaskDuration).mapTo[ReplyHistoricalTaskDuration]
+    } yield (activeTask, histDuration)
+
+    handleRemainingPomodoroTime(resp)
+  }
+
+  /**
+    * Handle the reply from the remaining pomodoro requests.
+    * @param resp The response onbject from remaining pomodoro requests.
+    * @return The remaining duration of the pomodoro.
+    */
+  def handleRemainingPomodoroTime(resp: Future[(ReplyActiveTaskDetails, ReplyHistoricalTaskDuration)]) : Route = {
     onSuccess(resp) {
       case (active, hist) if active.status == SUCCESS =>
         complete(WebServerActor.PomodoroDuration(
