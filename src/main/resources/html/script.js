@@ -228,8 +228,7 @@ function getRemainingTime(callbackToRun) {
 
     if (currentTask != null) {
         makeRequest('GET',
-            baseURL + "basched/getRemainingPomodoroTime?taskid="+currentTask.id+"&priority="+
-                currentTask.priority)
+            baseURL + "basched/getRemainingPomodoroTime?taskid="+currentTask.id)
             .then(function (xhr) {
                 console.log('got remaining time');
                 var duration = JSON.parse(xhr.responseText).duration;

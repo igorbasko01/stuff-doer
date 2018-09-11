@@ -83,7 +83,7 @@ class RouteContainer(self: ActorRef, databaseActor: ActorRef, password: String, 
   }
 
   val getReqRemainingPomodoroTime = path("basched" / "getRemainingPomodoroTime") {
-    parameters('taskid, 'priority) { (taskid, priority) =>
+    parameters('taskid) { (taskid) =>
       getRemainingPomodoroTime(taskid.toInt)
     }
   }
