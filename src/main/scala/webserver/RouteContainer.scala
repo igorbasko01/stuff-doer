@@ -88,6 +88,10 @@ class RouteContainer(self: ActorRef, databaseActor: ActorRef, password: String, 
     }
   }
 
+  val getReqRemainingGlobalPomodoroTime = path("basched" / "getRemainingGlobalPomodoroTime") {
+    getGlobalRemainingPomodoroTime
+  }
+
   val getReqRecordsByDateRange = path("basched" / "getRecordsByDateRange") {
     parameters('from, 'to) { (from, to) =>
       getRecordsByDateRange(from, to)
@@ -99,7 +103,7 @@ class RouteContainer(self: ActorRef, databaseActor: ActorRef, password: String, 
   }
 
   val getRoutes = get { getHomeFile ~ getShutdown ~ getQuery ~ getUpdate ~ getAllProjects ~
-    getUnfinishedTasks ~ getReqRemainingPomodoroTime ~ getHtmlFiles ~ getReqRecordsByDateRange ~ getMP3 }
+    getUnfinishedTasks ~ getReqRemainingPomodoroTime ~ getReqRemainingGlobalPomodoroTime ~ getHtmlFiles ~ getReqRecordsByDateRange ~ getMP3 }
 
   val postAddTask = path("basched" / "addTask") {
     parameters('prj, 'name, 'pri) { (prj, name, priority) =>
