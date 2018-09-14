@@ -9,7 +9,11 @@
     <script src="html/script.js"></script>
 </head>
 <body>
-    <div><h1 id="time">00:00</h1><p id="intervalTime">00:00</p></div>
+    <div>
+      <h1 id="global_time">00:00</h1>
+      <h2 id="time">00:00</h2>
+      <p id="intervalTime">00:00</p>
+    </div>
     <button id="startTaskBtn" onclick="toggleStartStopButton()">Start</button>
     <button onclick="gotoAddTaskPage()">Add Tasks</button>
     <button onClick="notifyMe()">Notify Me !</button>
