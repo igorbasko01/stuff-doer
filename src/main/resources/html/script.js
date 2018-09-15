@@ -70,7 +70,7 @@ function setStartStopButtonState(newState) {
 
 function startTimer() {
     startTaskRequest();
-    getRemainingTime(resetIntervals);
+    getRemainingTime(remainingTimeScope.TASK, resetIntervals);
 }
 
 function resetIntervals(pomodoroDuration) {
@@ -223,12 +223,18 @@ function changeTaskPriority(taskid, newPriority) {
 
 // Gets a calculation of the remaining time in the pomodoro from the server. And executes some callback function
 // that should get the duration as a parameter.
-function getRemainingTime(callbackToRun) {
-    console.log("getting time.")
+function getRemainingTime(scope, callbackToRun) {
+    console.log("getting time. Scope: " + scope)
+
+    var servicePath = "404.html"
+    if (scope == remainingTimeScope.TASK)
+        servicePath = "basched/getRemainingPomodoroTime?taskid="+currentTask.id
+    else
+        servicePath = "basched/getRemainingGlobalPomodoroTime"
 
     if (currentTask != null) {
         makeRequest('GET',
-            baseURL + "basched/getRemainingPomodoroTime?taskid="+currentTask.id)
+            baseURL + servicePath)
             .then(function (xhr) {
                 console.log('got remaining time');
                 var duration = JSON.parse(xhr.responseText).duration;
@@ -243,7 +249,7 @@ function requestUnfinishedTasks() {
     // Get all unfinished tasks.
     makeRequest('GET', baseURL + "basched/unfinishedtasks")
     .then(function (xhr) {handleTasksReply(xhr);})
-    .then(function () {getRemainingTime(displayTime);})
+    .then(function () {getRemainingTime(remainingTimeScope.TASK, displayTime);})
     .catch(logHttpError);
 }
 
