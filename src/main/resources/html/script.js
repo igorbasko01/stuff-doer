@@ -227,10 +227,15 @@ function getRemainingTime(scope, callbackToRun) {
     console.log("getting time. Scope: " + scope)
 
     var servicePath = "404.html"
-    if (scope == remainingTimeScope.TASK)
+    var displayDOM
+    if (scope == remainingTimeScope.TASK) {
         servicePath = "basched/getRemainingPomodoroTime?taskid="+currentTask.id
-    else
+        displayDOM = $("time")
+    }
+    else {
         servicePath = "basched/getRemainingGlobalPomodoroTime"
+        displayDOM = $("global_time")
+    }
 
     if (currentTask != null) {
         makeRequest('GET',
@@ -238,7 +243,7 @@ function getRemainingTime(scope, callbackToRun) {
             .then(function (xhr) {
                 console.log('got remaining time');
                 var duration = JSON.parse(xhr.responseText).duration;
-                callbackToRun(duration);
+                callbackToRun(duration, displayDOM);
             })
             .catch(logHttpError);
     }
@@ -250,6 +255,7 @@ function requestUnfinishedTasks() {
     makeRequest('GET', baseURL + "basched/unfinishedtasks")
     .then(function (xhr) {handleTasksReply(xhr);})
     .then(function () {getRemainingTime(remainingTimeScope.TASK, displayTime);})
+    .then(function () {getRemainingTime(remainingTimeScope.GLOBAL, displayTime);})
     .catch(logHttpError);
 }
 
