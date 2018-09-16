@@ -230,11 +230,11 @@ function getRemainingTime(scope, callbackToRun) {
     var displayDOM
     if (scope == remainingTimeScope.TASK) {
         servicePath = "basched/getRemainingPomodoroTime?taskid="+currentTask.id
-        displayDOM = $("time")
+        displayDOM = $("#time")
     }
     else {
         servicePath = "basched/getRemainingGlobalPomodoroTime"
-        displayDOM = $("global_time")
+        displayDOM = $("#global_time")
     }
 
     if (currentTask != null) {
