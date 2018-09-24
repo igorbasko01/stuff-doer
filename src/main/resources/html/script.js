@@ -1,5 +1,6 @@
 var timer;
 var timeEnd;
+var globalTimeEnd;
 
 var intervalToUpdate_ms = 10 * 1000;
 var intervalEnd;
@@ -69,13 +70,19 @@ function setStartStopButtonState(newState) {
 }
 
 function startTimer() {
+    var taskDuration;
+    
     startTaskRequest();
-    getRemainingTime(remainingTimeScope.TASK, resetIntervals);
+    getRemainingTime(remainingTimeScope.TASK)
+    .then(function (taskDur) {taskDuration = taskDur;
+                              return getRemainingTime(remainingTimeScope.GLOBAL);})
+    .then(function (globDur) {resetIntervals(taskDuration, globDur);});
 }
 
-function resetIntervals(pomodoroDuration) {
+function resetIntervals(taskDuration, globDuration) {
     var currentTime = new Date().getTime();
-    timeEnd = currentTime + pomodoroDuration;
+    timeEnd = currentTime + taskDuration;
+    globalTimeEnd = currentTime + globDuration;
 
     timer = setInterval(timerEnds, 1000);
 
@@ -108,6 +115,7 @@ function timerEnds() {
     }
 
     displayTime(timeEnd - currentTime, $("#time"));
+    displayTime(globalTimeEnd - currentTime, $("#global_time"))
 }
 
 // Checks if an interval passed and commits the work to the server.
@@ -223,29 +231,24 @@ function changeTaskPriority(taskid, newPriority) {
 
 // Gets a calculation of the remaining time in the pomodoro from the server. And executes some callback function
 // that should get the duration as a parameter.
-function getRemainingTime(scope, callbackToRun) {
+function getRemainingTime(scope) {
     console.log("getting time. Scope: " + scope)
 
     var servicePath = "404.html"
-    var displayDOM
     if (scope == remainingTimeScope.TASK) {
         servicePath = "basched/getRemainingPomodoroTime?taskid="+currentTask.id
-        displayDOM = $("#time")
     }
     else {
         servicePath = "basched/getRemainingGlobalPomodoroTime"
-        displayDOM = $("#global_time")
     }
 
     if (currentTask != null) {
-        makeRequest('GET',
+        return makeRequest('GET',
             baseURL + servicePath)
             .then(function (xhr) {
                 console.log('got remaining time');
-                var duration = JSON.parse(xhr.responseText).duration;
-                callbackToRun(duration, displayDOM);
+                return JSON.parse(xhr.responseText).duration;
             })
-            .catch(logHttpError);
     }
 }
 
@@ -254,8 +257,10 @@ function requestUnfinishedTasks() {
     // Get all unfinished tasks.
     makeRequest('GET', baseURL + "basched/unfinishedtasks")
     .then(function (xhr) {handleTasksReply(xhr);})
-    .then(function () {getRemainingTime(remainingTimeScope.TASK, displayTime);})
-    .then(function () {getRemainingTime(remainingTimeScope.GLOBAL, displayTime);})
+    .then(function () {return getRemainingTime(remainingTimeScope.TASK);})
+    .then(function (taskDur) {displayTime(taskDur, $("#time"));})
+    .then(function () {return getRemainingTime(remainingTimeScope.GLOBAL);})
+    .then(function (glbDur) {displayTime(glbDur, $("#global_time"));})
     .catch(logHttpError);
 }
 
