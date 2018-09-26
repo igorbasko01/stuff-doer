@@ -102,8 +102,14 @@ function resetCommitInterval(currentTime) {
 // Checks if the timer ended. If ended notifies the user and stops the interval.
 function timerEnds() {
     var currentTime = new Date().getTime();
-    if (currentTime > timeEnd) {
+    if (currentTime > timeEnd || currentTime > globalTimeEnd) {
         notifyMe();
+    }
+    if (currentTime > globalTimeEnd) {
+        setStartStopButtonState("Stop");
+        globalTimeEnd = currentTime;
+    }
+    if (currentTime > timeEnd) {
         toggleStartStopButton(currentTime)
         .then(function () { return updatePomodoros(currentTask.id, 1); })
         .then(function () { return updateTasksWindow(currentTask.id); })
