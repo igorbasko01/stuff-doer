@@ -1,5 +1,6 @@
 var timer;
 var timeEnd;
+var globalTimeEnd;
 
 var intervalToUpdate_ms = 10 * 1000;
 var intervalEnd;
@@ -42,7 +43,7 @@ function notifyMe() {
 
 }
 
-function toggleStartStopButton(currentTime = new Date().getTime()) {
+function toggleStartStopButton() {
     console.log("toggleStartStopButton");
     var btnStart = $("#startTaskBtn");
     var btnState = btnStart.text();
@@ -51,7 +52,7 @@ function toggleStartStopButton(currentTime = new Date().getTime()) {
         startTimer();
         btnStart.text("Stop");
     } else {
-        promise = stopTimer(currentTime);
+        promise = stopTimer();
         btnStart.text("Start");
     }
 
@@ -61,28 +62,37 @@ function toggleStartStopButton(currentTime = new Date().getTime()) {
 function setStartStopButtonState(newState) {
     var btnStart = $("#startTaskBtn");
     var btnState = btnStart.text();
+    var promise = Promise.resolve();
     // If the states are equal it means that currently the button displays the state that we want to change to.
     // For example, currently the text of the button is "Stop" because the task is running, and we want to go to
     // "Stop" state, so it has the same text.
     if (btnState == newState)
-        toggleStartStopButton();
+        promise = toggleStartStopButton();
+
+    return promise;
 }
 
 function startTimer() {
+    var taskDuration;
+    
     startTaskRequest();
-    getRemainingTime(resetIntervals);
+    getRemainingTime(remainingTimeScope.TASK)
+    .then(function (taskDur) {taskDuration = taskDur;
+                              return getRemainingTime(remainingTimeScope.GLOBAL);})
+    .then(function (globDur) {resetIntervals(taskDuration, globDur);});
 }
 
-function resetIntervals(pomodoroDuration) {
+function resetIntervals(taskDuration, globDuration) {
     var currentTime = new Date().getTime();
-    timeEnd = currentTime + pomodoroDuration;
+    timeEnd = currentTime + taskDuration;
+    globalTimeEnd = currentTime + globDuration;
 
     timer = setInterval(timerEnds, 1000);
 
     resetCommitInterval(currentTime);
 }
 
-function stopTimer(currentTime) {
+function stopTimer() {
     clearInterval(timer);
     return stopTaskRequest();
 }
@@ -95,9 +105,17 @@ function resetCommitInterval(currentTime) {
 // Checks if the timer ended. If ended notifies the user and stops the interval.
 function timerEnds() {
     var currentTime = new Date().getTime();
-    if (currentTime > timeEnd) {
+    var promise;
+    if (currentTime > timeEnd || currentTime > globalTimeEnd) {
         notifyMe();
-        toggleStartStopButton(currentTime)
+        promise = setStartStopButtonState("Stop");
+    }
+    if (currentTime > globalTimeEnd) {
+        promise.then(function () { requestUnfinishedTasks(); });
+        globalTimeEnd = currentTime;
+    }
+    if (currentTime > timeEnd) {
+        promise
         .then(function () { return updatePomodoros(currentTask.id, 1); })
         .then(function () { return updateTasksWindow(currentTask.id); })
         .then(function () { requestUnfinishedTasks(); });
@@ -108,6 +126,7 @@ function timerEnds() {
     }
 
     displayTime(timeEnd - currentTime, $("#time"));
+    displayTime(globalTimeEnd - currentTime, $("#global_time"))
 }
 
 // Checks if an interval passed and commits the work to the server.
@@ -223,19 +242,24 @@ function changeTaskPriority(taskid, newPriority) {
 
 // Gets a calculation of the remaining time in the pomodoro from the server. And executes some callback function
 // that should get the duration as a parameter.
-function getRemainingTime(callbackToRun) {
-    console.log("getting time.")
+function getRemainingTime(scope) {
+    console.log("getting time. Scope: " + scope)
+
+    var servicePath = "404.html"
+    if (scope == remainingTimeScope.TASK) {
+        servicePath = "basched/getRemainingPomodoroTime?taskid="+currentTask.id
+    }
+    else {
+        servicePath = "basched/getRemainingGlobalPomodoroTime"
+    }
 
     if (currentTask != null) {
-        makeRequest('GET',
-            baseURL + "basched/getRemainingPomodoroTime?taskid="+currentTask.id+"&priority="+
-                currentTask.priority)
+        return makeRequest('GET',
+            baseURL + servicePath)
             .then(function (xhr) {
                 console.log('got remaining time');
-                var duration = JSON.parse(xhr.responseText).duration;
-                callbackToRun(duration);
+                return JSON.parse(xhr.responseText).duration;
             })
-            .catch(logHttpError);
     }
 }
 
@@ -244,7 +268,10 @@ function requestUnfinishedTasks() {
     // Get all unfinished tasks.
     makeRequest('GET', baseURL + "basched/unfinishedtasks")
     .then(function (xhr) {handleTasksReply(xhr);})
-    .then(function () {getRemainingTime(displayTime);})
+    .then(function () {return getRemainingTime(remainingTimeScope.TASK);})
+    .then(function (taskDur) {displayTime(taskDur, $("#time"));})
+    .then(function () {return getRemainingTime(remainingTimeScope.GLOBAL);})
+    .then(function (glbDur) {displayTime(glbDur, $("#global_time"));})
     .catch(logHttpError);
 }
 

@@ -5,6 +5,7 @@ import akka.http.javadsl.model.ws.Message
 import database.DatabaseActor
 import database.DatabaseActor.QueryResult
 import org.joda.time.format.DateTimeFormat
+import org.joda.time.DateTime
 import webserver.WebServerActor
 import scheduler.BaschedRequest._
 
@@ -44,6 +45,7 @@ object BaschedRequest {
   case class ReplyRemainingTimeInPomodoro(duration: Long)
 
   case class RequestHistoricalTaskDuration(taskId: Int) extends Message
+  case object RequestTodaysHistoricalTaskDuration extends Message
   case class ReplyHistoricalTaskDuration(duration: Long)
 
   case class RequestUpdatePmdrCountInTask(taskId: Int, pmdrsToAdd: Int) extends Message
@@ -64,7 +66,7 @@ object BaschedRequest {
   case class RequestUpdateLastPing(taskid: Int) extends Message
   case class ReplyUpdateLastPing(response: Int)
 
-  case class RequestActiveTaskDetails(taskid: Int) extends Message
+  case class RequestActiveTaskDetails(taskid: Option[Int]) extends Message
   case class ActiveTask(taskid: Int, startTimestamp: String, endTimestamp: String, initDuration: Long)
   case class ReplyActiveTaskDetails(status: Int, activeTask: ActiveTask)
 
@@ -116,6 +118,7 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     case req: RequestActiveTaskDetails => requestActiveTaskDetails(req.taskid)
     case req: RequestDeleteActiveTask => requestDeleteActiveTask(req.taskid)
     case req: RequestHistoricalTaskDuration => requestHistoricalTaskDuration(req.taskId)
+    case RequestTodaysHistoricalTaskDuration => requestTodaysHistoricalTaskDuration
     case req: RequestUpdateTaskPriority => requestUpdateTaskPriority(req.taskid, req.priority)
     case req: RequestAggRecordsByDateRange => requestAggregatedRecords(req)
     case RequestActiveTasks => requestActiveTasks()
@@ -326,6 +329,21 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
     replyTo ! ReplyHistoricalTaskDuration(totalDuration)
   }
 
+
+  /**
+    * Reply the total duration of all the records that ended today.
+    * Using this method I should be able to calculate how much pomodoros
+    * were finished today.
+    */
+  def requestTodaysHistoricalTaskDuration : Unit = {
+    replyTo = sender()
+    handleReply = replyHistoricalTaskDuration
+
+    val startOfDay_ms = new DateTime().withTimeAtStartOfDay().getMillis
+
+    db ! DatabaseActor.QueryDB(0, s"SELECT SUM(DURATION_MS) FROM ${Basched.TABLE_NAME_RECORDS} WHERE END > $startOfDay_ms")
+  }
+
   /**
     * Request to update the [[Task]]s number of [[Task.pomodoros]].
     * @param taskId The [[Task.id]] to update.
@@ -465,14 +483,23 @@ class BaschedRequest(db: ActorRef) extends Actor with ActorLogging {
 
   /**
     * Queries a specific task from the [[Basched.TABLE_NAME_ACTIVE_TASK]] table.
+    * If a [[Task.id]] is passed, than query it specifically.
+    * Otherwise, just query whatever there is in the table.
     * @param taskId [[Task.id]] to query.
     */
-  def requestActiveTaskDetails(taskId: Int) : Unit = {
+  def requestActiveTaskDetails(taskId: Option[Int]) : Unit = {
     replyTo = sender()
     handleReply = replyActiveTaskDetails
 
-    db ! DatabaseActor.QueryDB(0, s"SELECT TSKID, START, LAST_PING, INITIAL_DURATION " +
-      s"FROM ${Basched.TABLE_NAME_ACTIVE_TASK} WHERE TSKID = $taskId")
+    val sqlStmtHeader = s"SELECT TSKID, START, LAST_PING, INITIAL_DURATION " +
+    s"FROM ${Basched.TABLE_NAME_ACTIVE_TASK} "
+
+    val sqlStmt = taskId match {
+      case Some(id) => s"$sqlStmtHeader WHERE TSKID = $id"
+      case _ => sqlStmtHeader
+    }
+
+    db ! DatabaseActor.QueryDB(0, sqlStmt)
   }
 
   /**
