@@ -43,7 +43,7 @@ function notifyMe() {
 
 }
 
-function toggleStartStopButton(currentTime = new Date().getTime()) {
+function toggleStartStopButton() {
     console.log("toggleStartStopButton");
     var btnStart = $("#startTaskBtn");
     var btnState = btnStart.text();
@@ -52,7 +52,7 @@ function toggleStartStopButton(currentTime = new Date().getTime()) {
         startTimer();
         btnStart.text("Stop");
     } else {
-        promise = stopTimer(currentTime);
+        promise = stopTimer();
         btnStart.text("Start");
     }
 
@@ -62,11 +62,14 @@ function toggleStartStopButton(currentTime = new Date().getTime()) {
 function setStartStopButtonState(newState) {
     var btnStart = $("#startTaskBtn");
     var btnState = btnStart.text();
+    var promise = Promise.resolve();
     // If the states are equal it means that currently the button displays the state that we want to change to.
     // For example, currently the text of the button is "Stop" because the task is running, and we want to go to
     // "Stop" state, so it has the same text.
     if (btnState == newState)
-        toggleStartStopButton();
+        promise = toggleStartStopButton();
+
+    return promise;
 }
 
 function startTimer() {
@@ -89,7 +92,7 @@ function resetIntervals(taskDuration, globDuration) {
     resetCommitInterval(currentTime);
 }
 
-function stopTimer(currentTime) {
+function stopTimer() {
     clearInterval(timer);
     return stopTaskRequest();
 }
@@ -102,15 +105,17 @@ function resetCommitInterval(currentTime) {
 // Checks if the timer ended. If ended notifies the user and stops the interval.
 function timerEnds() {
     var currentTime = new Date().getTime();
+    var promise;
     if (currentTime > timeEnd || currentTime > globalTimeEnd) {
         notifyMe();
+        promise = setStartStopButtonState("Stop");
     }
     if (currentTime > globalTimeEnd) {
-        setStartStopButtonState("Stop");
+        promise.then(function () { requestUnfinishedTasks(); });
         globalTimeEnd = currentTime;
     }
     if (currentTime > timeEnd) {
-        toggleStartStopButton(currentTime)
+        promise
         .then(function () { return updatePomodoros(currentTask.id, 1); })
         .then(function () { return updateTasksWindow(currentTask.id); })
         .then(function () { requestUnfinishedTasks(); });
