@@ -12,9 +12,5 @@ tar xzf hyper-linux-x86_64.tar.gz
 ./hyper pull egorebasko/stuff-doer
 # Remove images that have no tags.
 ./hyper rmi $(./hyper images -f "dangling=true" -q)
-<<<<<<< HEAD
 ./hyper run -d -p 80:9080 -v stuff-igor:/root --name stuff-doer --size=s2 egorebasko/stuff-doer
-=======
-./hyper run -d -p 80:9080 -v stuff-igor:/root --name stuff-doer --size=s1 egorebasko/stuff-doer
->>>>>>> d1db32fde6844ee7f0a68836b5befa9949cc360b
 ./hyper fip attach "$FIP" stuff-doer
