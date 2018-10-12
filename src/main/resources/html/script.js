@@ -109,6 +109,7 @@ function timerEnds() {
     if (currentTime > timeEnd || currentTime > globalTimeEnd) {
         notifyMe();
         promise = setStartStopButtonState("Stop");
+        startBreakTimer($("#global_time"), $("#startTaskBtn"));
     }
     if (currentTime > globalTimeEnd) {
         promise.then(function () { requestUnfinishedTasks(); });
@@ -308,4 +309,9 @@ function startTaskRequest() {
 function stopTaskRequest() {
     return makeRequest('POST', baseURL + "basched/stopTask?taskid="+currentTask.id)
     .catch(logHttpError);
+}
+
+function startBreakTimer(globalTimerDisp, startButton) {
+    console.log("Starting break timer...");
+    BreakTimer.enableBreakTimer(globalTimerDisp, startButton)
 }
