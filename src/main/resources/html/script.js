@@ -313,5 +313,5 @@ function stopTaskRequest() {
 
 function startBreakTimer(globalTimerDisp, startButton) {
     console.log("Starting break timer...");
-    BreakTimer.enableBreakTimer(globalTimerDisp, startButton)
+    BreakTimer.enableBreakTimer(requestUnfinishedTasks, globalTimerDisp, startButton)
 }
