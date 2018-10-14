@@ -1,7 +1,6 @@
 var BreakTimer = {
     beforeBreak: {
         timer: null,
-        endTime: null,
         waitTime: 0.1 * 60 * 1000, // Change it to 5 minutes.
         breakTime: 5 * 60 * 1000,
         startButton: null,
@@ -9,10 +8,13 @@ var BreakTimer = {
         globalTimerDisp: null,
         callback: null
     },
+    duringBreak: {
+        timer: null,
+        endTime: null
+    },
     enableBreakTimer: function(callback, globalTimerDisp, startButton) {
-        var currentTime = new Date().getTime();
-        this.beforeBreak.endTime = currentTime + this.beforeBreak.waitTime;
-        this.beforeBreak.timer = setInterval(this.breakTimerEnded, 1000);
+        this.beforeBreak.timer = setTimeout(this.breakTimerEnded,
+                                            this.beforeBreak.waitTime);
 
         this.beforeBreak.callback = callback;
         
@@ -26,23 +28,27 @@ var BreakTimer = {
         startButton.text("Start Break");
     },
     breakTimerEnded: function() {
-        var currentTime = new Date().getTime();
         // The scope of this function is different because it is called from
         // inside setInterval, so 'this' doesn't point to BreakTimer.
-        if (currentTime > BreakTimer.beforeBreak.endTime) {
-            clearInterval(BreakTimer.beforeBreak.timer);
-            console.log("Break wait timer ended...");
-            BreakTimer.resetStartButton();
-            BreakTimer.beforeBreak.globalTimerDisp.css('color', '')
-            BreakTimer.beforeBreak.callback();
-        }
+        clearInterval(BreakTimer.beforeBreak.timer);
+        console.log("Break wait timer ended...");
+        BreakTimer.resetStartButton();
+        BreakTimer.beforeBreak.globalTimerDisp.css('color', '')
+        BreakTimer.beforeBreak.callback();
     },
     startBreak: function() {
         console.log("Break started...");
-        clearInterval(BreakTimer.beforeBreak.timer);
+        clearTimeout(BreakTimer.beforeBreak.timer);
         this.beforeBreak.startButton.text("Skip Break");
+
+        var currentTime = new Date().getTime();
+        this.duringBreak.endTime = currentTime + this.beforeBreak.breakTime;
+        this.duringBreak.timer = setInterval(this.updateTimer, 1000);
     },
-    stopBreak: function() {
+    updateTimer: function() {
+        
+    },
+    skipBreak: function() {
         
     },
     resetStartButton: function() {
