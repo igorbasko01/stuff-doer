@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function () {
   requestUnfinishedTasks();
 });
 
-function notifyMe() {
+function notifyMe(msgTitle, msgBody) {
     var audio = new Audio("resources/mp3/Alarm.mp3");
     audio.play();
     
@@ -29,9 +29,9 @@ function notifyMe() {
   if (Notification.permission !== "granted")
     Notification.requestPermission();
   else {
-    var notification = new Notification('Timer Ended !', {
+    var notification = new Notification(msgTitle, {
 //      icon: 'http://cdn.sstatic.net/stackexchange/img/logos/so/so-icon.png',
-      body: "Well Done !",
+      body: msgBody,
     });
 
 
@@ -107,7 +107,7 @@ function timerEnds() {
     var currentTime = new Date().getTime();
     var promise;
     if (currentTime > timeEnd || currentTime > globalTimeEnd) {
-        notifyMe();
+        notifyMe('Timer Ended !', 'Well Done, Time for a break.');
         promise = setStartStopButtonState("Stop");
         startBreakTimer($("#global_time"), $("#startTaskBtn"));
     }
