@@ -107,15 +107,15 @@ function timerEnds() {
     var currentTime = new Date().getTime();
     var promise;
     if (currentTime > timeEnd || currentTime > globalTimeEnd) {
-        notifyMe('Timer Ended !', 'Well Done, Time for a break.');
         promise = setStartStopButtonState("Stop");
-        startBreakTimer($("#global_time"), $("#startTaskBtn"));
     }
     if (currentTime > globalTimeEnd) {
-        promise.then(function () { requestUnfinishedTasks(); });
+        notifyMe('Timer Ended !', 'Well Done, Time for a break.');
+        startBreakTimer($("#global_time"), $("#startTaskBtn"));
         globalTimeEnd = currentTime;
     }
-    if (currentTime > timeEnd) {
+    else if (currentTime > timeEnd) {
+        notifyMe('Timer Ended !', 'Well Done, Task finished.');
         promise
         .then(function () { return updatePomodoros(currentTask.id, 1); })
         .then(function () { return updateTasksWindow(currentTask.id); })
@@ -124,10 +124,9 @@ function timerEnds() {
     } else {
         // If the timer ends, avoid duplicate record commit.
         handleCommitInterval(currentTime);
+        displayTime(timeEnd - currentTime, $("#time"));
+        displayTime(globalTimeEnd - currentTime, $("#global_time"))
     }
-
-    displayTime(timeEnd - currentTime, $("#time"));
-    displayTime(globalTimeEnd - currentTime, $("#global_time"))
 }
 
 // Checks if an interval passed and commits the work to the server.
