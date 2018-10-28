@@ -20,4 +20,4 @@ Create a docker volume to use with the image so it will store all the tasks: `do
 
 Run the docker image, with the following command: `docker run -p 80:9080 --mount src=test,target=/root stuff-doer`
 
-That's all. It should start a server, and you can access it through: `http://localhost`
+That's all . It should start a server, and you can access it through: `http://localhost`
