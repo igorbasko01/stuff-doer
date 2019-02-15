@@ -28,7 +28,7 @@ function requestRecordsForToday() {
 
 function requestRecordsForDateRange(startDate_ms, endDate_ms) {
     console.log("Requesting records for date range: "+startDate_ms+" -> "+endDate_ms)
-    makeRequest("GET", baseURL + "basched/getRecordsByDateRange?from="+startDate_ms+"&to="+endDate_ms)
+    makeRequest("GET", baseURL + "basched/getAggRecordsByDateRange?from="+startDate_ms+"&to="+endDate_ms)
     .then(function (xhr) {handleReply(xhr);})
     .catch(logHttpError);
 }
@@ -38,6 +38,7 @@ const sumDurations = (accum, record) => ({duration: parseInt(accum.duration) + p
 function handleReply(response) {
     console.log("Handling records reply now !");
     var records = JSON.parse(response.responseText).records;
+    console.log(records);
 
     if (records.length == 0) {
         console.log("No records yet for today.");

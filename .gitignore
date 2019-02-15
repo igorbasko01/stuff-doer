@@ -2,5 +2,6 @@
 *.iml
 target/*
 project/target/*
+project/project/target/*
 *.log*
 .ensime*

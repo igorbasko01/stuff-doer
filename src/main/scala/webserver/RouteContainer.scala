@@ -92,9 +92,9 @@ class RouteContainer(self: ActorRef, databaseActor: ActorRef, password: String, 
     getGlobalRemainingPomodoroTime
   }
 
-  val getReqRecordsByDateRange = path("basched" / "getRecordsByDateRange") {
+  val getReqRecordsByDateRange = path("basched" / "getAggRecordsByDateRange") {
     parameters('from, 'to) { (from, to) =>
-      getRecordsByDateRange(from, to)
+      getAggRecordsByDateRange(from, to)
     }
   }
 
@@ -509,12 +509,12 @@ class RouteContainer(self: ActorRef, databaseActor: ActorRef, password: String, 
   }
 
   /**
-    * Return all Records that ended at the specified date range.
+    * Return all Records aggregated that ended at the specified date range.
     * @param from The start date in millis.
     * @param to The end date in millis.
-    * @return The Route object of the request.
+    * @return Aggregated records per task.
     */
-  def getRecordsByDateRange(from: String, to: String) : Route = {
+  def getAggRecordsByDateRange(from: String, to: String) : Route = {
     implicit val ec: ExecutionContext = dispatcher
 
     val response = for {
