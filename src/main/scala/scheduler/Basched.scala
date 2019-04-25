@@ -15,6 +15,7 @@ object Basched {
   val TABLE_NAME_RECORDS = "records"
   val TABLE_NAME_PROJECTS = "projects"
   val TABLE_NAME_ACTIVE_TASK = "active_task"
+  val TABLE_NAME_SCHEMA_EVO = "schema_evo"
 
   val PRIORITY = Map("im" -> 0, "hi" -> 1, "re" -> 2)
   val STATUS = Map("READY" -> 0, "WINDOW_FINISHED" -> 1, "ON_HOLD_WINDOW_FINISHED" -> 2, "ON_HOLD_READY" -> 3,
@@ -41,7 +42,8 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
     TABLE_NAME_TASKS -> createStmtTaskTable,
     TABLE_NAME_RECORDS -> createStmtRecordsTable,
     TABLE_NAME_PROJECTS -> createStmtProjectsTable,
-    TABLE_NAME_ACTIVE_TASK -> createStmtActiveTaskTable
+    TABLE_NAME_ACTIVE_TASK -> createStmtActiveTaskTable,
+    TABLE_NAME_SCHEMA_EVO -> createStmtSchemaEvoTab
   )
 
   val db: ActorRef = context.parent
@@ -115,4 +117,9 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
     s"LAST_PING TIMESTAMP DEFAULT CURRENT_TIMESTAMP()," +
     s"INITIAL_DURATION BIGINT" +
     s")"
+
+  private def createStmtSchemaEvoTab = s"CREATE TABLE $TABLE_NAME_SCHEMA_EVO (" +
+    s"CMD_ID INT," +
+    s"CMD_STR VARCHAR(1024)," +
+    s"EXEC_TIME TIMESTAMP)"
 }
