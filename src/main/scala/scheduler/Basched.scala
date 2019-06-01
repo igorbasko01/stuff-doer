@@ -1,7 +1,7 @@
 package scheduler
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import database.DatabaseActor
+import database.DatabaseActor, DatabaseActor.QueryResult
 import utils.Configuration
 import scheduler.Basched._
 
@@ -46,9 +46,18 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
     TABLE_NAME_SCHEMA_EVO -> createStmtSchemaEvoTab
   )
 
+  val schemaEvoCmnds = List(
+    s"ALTER TABLE ${TABLE_NAME_TASKS} ADD COLUMN USER_ID VARCHAR(255)",
+    s"ALTER TABLE ${TABLE_NAME_RECORDS} ADD COLUMN USER_ID VARCHAR(255)",
+    s"ALTER TABLE ${TABLE_NAME_PROJECTS} ADD COLUMN USER_ID VARCHAR(255)",
+    s"ALTER TABLE ${TABLE_NAME_ACTIVE_TASK} ADD COLUMN USER_ID VARCHAR(255)"
+  )
+
   val db: ActorRef = context.parent
 
   var requests: Map[Int, ((DatabaseActor.QueryResult) => Unit)] = Map(0 -> ((_: DatabaseActor.QueryResult) => ()))
+
+  var amntInitTablesComplete = 0
 
   override def preStart(): Unit = {
     log.info("Starting...")
@@ -62,6 +71,47 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
     case unknown => log.warning("Got unhandled message: {}", unknown)
   }
 
+  def tableInitComplete(res: DatabaseActor.QueryResult): Unit = {
+    log.info("Table creation result: {}", res.message)
+    if (res.errorCode == 0) amntInitTablesComplete += 1
+    if (amntInitTablesComplete == tablesCreationStmts.size)
+      fetchSchemaEvoHist()
+  }
+
+  def fetchSchemaEvoHist(): Unit = {
+    log.info("Fetching schema evolution history.")
+    addQueryRequest(db, s"SELECT MAX(cmd_id) FROM ${TABLE_NAME_SCHEMA_EVO}",
+      update = false, execSchemaEvo)
+  }
+
+  def execSchemaEvo(res: DatabaseActor.QueryResult): Unit = {
+    log.info("Starting Schema Evolution commands...")
+
+    res match {
+      case QueryResult(_, rows, _, 0) =>
+        val startFrom = if (rows.head.head.head == null) 0 else rows.head.head.head.toInt + 1
+        log.info(s"Got the following result: ${startFrom}")
+        executeEvoStmt(startFrom)(res)
+      case other => throw new Exception(s"Couldn't determine schema evolution history. Res: ${other}")
+    }
+  }
+
+  def executeEvoStmt(cmndIdx: Int)(res: DatabaseActor.QueryResult): Unit = {
+    if (cmndIdx >= schemaEvoCmnds.size) return
+
+    res match {
+      case QueryResult(_, _, _, 0) =>
+        if (cmndIdx > 0)
+          addQueryRequest(db,
+            s"INSERT INTO ${TABLE_NAME_SCHEMA_EVO} (CMD_ID, CMD_STR, EXEC_TIME)" +
+            s"VALUES(${cmndIdx-1}, ${schemaEvoCmnds(cmndIdx-1)}, CURRENT_TIMESTAMP)",
+            update = true, (res: DatabaseActor.QueryResult) => {})
+        addQueryRequest(db, schemaEvoCmnds(cmndIdx), update = true, executeEvoStmt(cmndIdx + 1))
+      case other =>
+        throw new Exception(s"Couldn't perform the following command: ${schemaEvoCmnds(cmndIdx-1)}, Res: ${res}")
+    }
+  }
+
   def handleQueryResult(result: DatabaseActor.QueryResult): Unit = {
     requests(result.reqId)(result)
     requests -= result.reqId
@@ -72,9 +122,7 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
 
     addQueryRequest(db,
       tablesCreationStmts(name), update = true,
-      (x: DatabaseActor.QueryResult) => {
-        log.info("Table creation result: {}", x.message)
-      }
+      tableInitComplete
     )
   }
 
