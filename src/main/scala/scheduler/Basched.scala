@@ -67,6 +67,7 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
 
   override def receive: Receive = {
     case DatabaseActor.TableExistsResult(name, isExist) if !isExist => createTable(name)
+    case DatabaseActor.TableExistsResult(name, true) => tableInitComplete(DatabaseActor.QueryResult(-1, None, "Already exists !", 0))
     case x: DatabaseActor.QueryResult => handleQueryResult(x)
     case unknown => log.warning("Got unhandled message: {}", unknown)
   }
@@ -91,25 +92,32 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
       case QueryResult(_, rows, _, 0) =>
         val startFrom = if (rows.head.head.head == null) 0 else rows.head.head.head.toInt + 1
         log.info(s"Got the following result: ${startFrom}")
-        executeEvoStmt(startFrom)(res)
+        executeEvoStmt(startFrom)(QueryResult(0, None, "", 201))
       case other => throw new Exception(s"Couldn't determine schema evolution history. Res: ${other}")
     }
   }
 
   def executeEvoStmt(cmndIdx: Int)(res: DatabaseActor.QueryResult): Unit = {
-    if (cmndIdx >= schemaEvoCmnds.size) return
-
     res match {
       case QueryResult(_, _, _, 0) =>
         if (cmndIdx > 0)
           addQueryRequest(db,
-            s"INSERT INTO ${TABLE_NAME_SCHEMA_EVO} (CMD_ID, CMD_STR, EXEC_TIME)" +
-            s"VALUES(${cmndIdx-1}, ${schemaEvoCmnds(cmndIdx-1)}, CURRENT_TIMESTAMP)",
-            update = true, (res: DatabaseActor.QueryResult) => {})
-        addQueryRequest(db, schemaEvoCmnds(cmndIdx), update = true, executeEvoStmt(cmndIdx + 1))
+            s"INSERT INTO ${TABLE_NAME_SCHEMA_EVO} (CMD_ID, CMD_STR, EXEC_TIME) " +
+            s"VALUES(${cmndIdx-1}, '${schemaEvoCmnds(cmndIdx-1)}', CURRENT_TIMESTAMP)",
+            update = true, schemaEvoUpdateResult)
+      case QueryResult(_, _, _, 201) => log.info("Start of the schema evo process.")
       case other =>
         throw new Exception(s"Couldn't perform the following command: ${schemaEvoCmnds(cmndIdx-1)}, Res: ${res}")
     }
+
+    if (cmndIdx < schemaEvoCmnds.size)
+      addQueryRequest(db, schemaEvoCmnds(cmndIdx), update = true, executeEvoStmt(cmndIdx + 1))
+    else
+      log.info("Schema evolution process is finished !")
+  }
+
+  def schemaEvoUpdateResult(res: DatabaseActor.QueryResult): Unit = {
+    log.info(s"Query result: ${res.message}")
   }
 
   def handleQueryResult(result: DatabaseActor.QueryResult): Unit = {
