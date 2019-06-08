@@ -107,7 +107,9 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
             update = true, schemaEvoUpdateResult)
       case QueryResult(_, _, _, 201) => log.info("Start of the schema evo process.")
       case other =>
-        throw new Exception(s"Couldn't perform the following command: ${schemaEvoCmnds(cmndIdx-1)}, Res: ${res}")
+        log.error(s"Couldn't perform the following command: ${schemaEvoCmnds(cmndIdx-1)}, Res: ${res}")
+        context.system.terminate()
+        return
     }
 
     if (cmndIdx < schemaEvoCmnds.size)
