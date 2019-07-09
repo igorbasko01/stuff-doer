@@ -16,6 +16,7 @@ object Basched {
   val TABLE_NAME_PROJECTS = "projects"
   val TABLE_NAME_ACTIVE_TASK = "active_task"
   val TABLE_NAME_SCHEMA_EVO = "schema_evo"
+  val TABLE_NAME_USERS = "users"
 
   val PRIORITY = Map("im" -> 0, "hi" -> 1, "re" -> 2)
   val STATUS = Map("READY" -> 0, "WINDOW_FINISHED" -> 1, "ON_HOLD_WINDOW_FINISHED" -> 2, "ON_HOLD_READY" -> 3,
@@ -43,7 +44,8 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
     TABLE_NAME_RECORDS -> createStmtRecordsTable,
     TABLE_NAME_PROJECTS -> createStmtProjectsTable,
     TABLE_NAME_ACTIVE_TASK -> createStmtActiveTaskTable,
-    TABLE_NAME_SCHEMA_EVO -> createStmtSchemaEvoTab
+    TABLE_NAME_SCHEMA_EVO -> createStmtSchemaEvoTab,
+    TABLE_NAME_USERS -> createUserTable
   )
 
   val schemaEvoCmnds = List(
@@ -180,4 +182,11 @@ class Basched(config: Configuration) extends Actor with ActorLogging {
     s"CMD_ID INT," +
     s"CMD_STR VARCHAR(1024)," +
     s"EXEC_TIME TIMESTAMP)"
+
+  private def createUserTable = s"CREATE TABLE $TABLE_NAME_USERS (" +
+    s"USER_ID VARCHAR(255)," +
+    s"USER_EMAIL VARCHAR(255)," +
+    s"USER_SALT VARCHAR(10)," +
+    s"USER_PASSWORD VARCHAR(245)," +
+    s"USER_ROLE INT)"
 }
